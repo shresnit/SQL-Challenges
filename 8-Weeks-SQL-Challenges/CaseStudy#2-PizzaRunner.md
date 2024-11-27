@@ -1,0 +1,168 @@
+**Case Study #2 - Pizza Runner**
+________
+<br>
+
+Challenge Source: https://8weeksqlchallenge.com/case-study-2/
+<br>
+
+**Introduction**
+<br>
+Danny was scrolling through his Instagram feed when something really caught his eye - “80s Retro Styling and Pizza Is The Future!”
+<br>
+
+Danny was sold on the idea, but he knew that pizza alone was not going to help him get seed funding to expand his new Pizza Empire - so he had one more genius idea to combine with it - he was going to Uberize it - and so Pizza Runner was launched!
+<br>
+
+Danny started by recruiting “runners” to deliver fresh pizza from Pizza Runner Headquarters (otherwise known as Danny’s house) and also maxed out his credit card to pay freelance developers to build a mobile app to accept orders from customers.
+<br>
+
+Danny’s Diner is in need of your assistance to help the restaurant stay afloat - the restaurant has captured some very basic data from their few months of operation but have no idea how to use their data to help them run the business.
+<br>
+<br>
+
+**Available Data**
+<br>
+Because Danny had a few years of experience as a data scientist - he was very aware that data collection was going to be critical for his business’ growth.
+<br>
+
+He has prepared for us an entity relationship diagram of his database design but requires further assistance to clean his data and apply some basic calculations so he can better direct his runners and optimise Pizza Runner’s operations.
+<br>
+
+All datasets exist within the pizza_runner database schema - be sure to include this reference within your SQL scripts as you start exploring the data and answering the case study questions.
+<br>
+
+![image](https://github.com/user-attachments/assets/090d81e5-0997-4cbc-ad50-b26483e27202)
+
+<br>
+<br>
+
+
+**A. Pizza  Metrics**
+__________
+<br>
+Q1. How many pizzas were ordered?
+
+    SELECT COUNT(*) AS no_of_pizzas_ordered
+    FROM customer_orders
+    ;
+|no_of_pizzas_ordered|
+|--------------------|
+|14                  |
+
+<br>
+
+Q2. How many unique customer orders were made?
+
+    SELECT COUNT(DISTINCT order_id) AS unique_customer_orders
+    FROM customer_orders
+    ;
+|unique_customer_orders|
+|----------------------|
+|10                    |
+
+<br>
+
+Q3. How many successful orders were delivered by each runner?
+
+    SELECT runner_id
+    	, COUNT(*) AS number_of_orders_delivered
+    FROM runner_orders
+    WHERE pickup_time IS NOT NULL
+    GROUP BY runner_id
+    ORDER BY runner_id
+    ;
+
+|runner_id|number_of_orders_delivered|
+|---------|--------------------------|
+|1        |4                         |
+|2        |4                         |
+|3        |2                         |
+
+<br>
+
+Q3. How many successful orders were delivered by each runner?
+
+    SELECT runner_id
+    	, COUNT(*) AS number_of_orders_delivered
+    FROM runner_orders
+    WHERE pickup_time != 'null'
+    GROUP BY runner_id
+    ORDER BY runner_id
+    ;
+
+|runner_id|number_of_orders_delivered|
+|---------|--------------------------|
+|1        |4                         |
+|2        |3                         |
+|3        |1                         |
+
+<br>
+
+Q4. How many of each type of pizza was delivered?
+
+    SELECT A. pizza_id
+    	, C.pizza_name
+       , COUNT(A. order_id)
+    FROM customer_orders AS A
+    INNER JOIN runner_orders AS B
+    	ON A.order_id = B.order_id
+    INNER JOIN pizza_names AS C
+    	ON A.pizza_id = C.pizza_id
+    WHERE B.pickup_time != 'null'
+    GROUP BY A.pizza_id, C.pizza_name
+    ;
+
+|pizza_id|pizza_name|count|
+|--------|----------|-----|
+|1       |Meatlovers|9    |
+|2       |Vegetarian|3    |
+
+<br>
+
+Q5 How many Vegetarian and Meatlovers were ordered by each customer?
+
+    SELECT A.customer_id
+    	, C.pizza_name
+       	, COUNT(A. order_id) AS no_of_pizzas
+    FROM customer_orders AS A
+    INNER JOIN runner_orders AS B
+    	ON A.order_id = B.order_id
+    INNER JOIN pizza_names AS C
+    	ON A.pizza_id = C.pizza_id
+    GROUP BY A.customer_id, C.pizza_name
+    ORDER BY customer_id
+    ;
+
+|customer_id|pizza_name|no_of_pizzas|
+|-----------|----------|-----|
+|101        |Meatlovers|2    |
+|101        |Vegetarian|1    |
+|102        |Meatlovers|2    |
+|102        |Vegetarian|1    |
+|103        |Meatlovers|3    |
+|103        |Vegetarian|1    |
+|104        |Meatlovers|3    |
+|105        |Vegetarian|1    |
+
+<br>
+
+Q5 What was the maximum number of pizzas delivered in a single order?
+
+    SELECT COUNT(A. order_id) AS max_pizzas_delivered_in_single_order
+    FROM customer_orders AS A
+    INNER JOIN runner_orders AS B
+    	ON A.order_id = B.order_id
+    INNER JOIN pizza_names AS C
+    	ON A.pizza_id = C.pizza_id
+    WHERE B.pickup_time != 'null' 
+    GROUP BY A.order_id
+    ORDER BY max_pizzas_delivered_in_single_order DESC
+    LIMIT 1
+    ;
+|max_pizzas_delivered_in_single_order|
+|------------------------------------|
+|3                                   |
+
+<br>
+
+
