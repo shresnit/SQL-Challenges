@@ -119,7 +119,7 @@ Q4. How many of each type of pizza was delivered?
 
 <br>
 
-Q5 How many Vegetarian and Meatlovers were ordered by each customer?
+Q5. How many Vegetarian and Meatlovers were ordered by each customer?
 
     SELECT A.customer_id
     	, C.pizza_name
@@ -146,7 +146,7 @@ Q5 How many Vegetarian and Meatlovers were ordered by each customer?
 
 <br>
 
-Q5 What was the maximum number of pizzas delivered in a single order?
+Q6. What was the maximum number of pizzas delivered in a single order?
 
     SELECT COUNT(A. order_id) AS max_pizzas_delivered_in_single_order
     FROM customer_orders AS A
@@ -165,4 +165,54 @@ Q5 What was the maximum number of pizzas delivered in a single order?
 
 <br>
 
+Q7. For each customer, how many delivered pizzas had at least 1 change and how many had no changes?
+
+    SELECT A.customer_id
+    	,CASE
+         WHEN COALESCE(A.exclusions, '') IN ('', 'null') AND COALESCE(A.extras, '') IN ('', 'null')	THEN 'No Change'
+         ELSE 'At Least 1 Change'
+         END AS changes
+        ,COUNT(*) AS No_of_DeliveredPizzas 
+    FROM customer_orders AS A
+    INNER JOIN runner_orders AS B
+    	ON A.order_id = B.order_id
+    INNER JOIN pizza_names AS C
+    	ON A.pizza_id = C.pizza_id
+    WHERE B.pickup_time != 'null' 
+    GROUP BY changes, A.customer_id
+    ORDER BY A.customer_id
+    ;
+|customer_id|changes          |no_of_deliveredpizzas|
+|-----------|-----------------|---------------------|
+|101        |No Change        |2                    |
+|102        |No Change        |3                    |
+|103        |At Least 1 Change|3                    |
+|104        |No Change        |1                    |
+|104        |At Least 1 Change|2                    |
+|105        |At Least 1 Change|1                    |
+
+<br>
+
+Q8. How many pizzas were delivered that had both exclusions and extras?
+
+    SELECT SUM(no_of_deliveredpizzas) AS no_of_deliveredpizzas_both
+    FROM (SELECT A.customer_id
+            ,CASE
+             WHEN COALESCE(A.exclusions, '') NOT IN ('', 'null') AND COALESCE(A.extras, '') NOT IN ('', 'null')	THEN 'Both'
+             ELSE 'Not Both'
+             END AS changes
+            ,COUNT(*) AS No_of_DeliveredPizzas 
+          FROM customer_orders AS A
+          INNER JOIN runner_orders AS B
+              ON A.order_id = B.order_id
+          INNER JOIN pizza_names AS C
+              ON A.pizza_id = C.pizza_id
+          WHERE B.pickup_time != 'null' 
+          GROUP BY changes, A.customer_id) AS SQ
+    WHERE changes = 'Both'
+    ;
+
+|no_of_deliveredpizzas_both|
+|--------------------------|
+|1                         |
 
