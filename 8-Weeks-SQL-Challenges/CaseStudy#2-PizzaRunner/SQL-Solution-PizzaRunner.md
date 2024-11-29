@@ -1,12 +1,8 @@
-**Case Study #2 - Pizza Runner**
-________
-<br>
-
+# Case Study #2 - Pizza Runner
 Challenge Source: https://8weeksqlchallenge.com/case-study-2/
 <br>
 
-**Introduction**
-<br>
+### Introduction
 Danny was scrolling through his Instagram feed when something really caught his eye - “80s Retro Styling and Pizza Is The Future!”
 <br>
 
@@ -20,8 +16,7 @@ Danny’s Diner is in need of your assistance to help the restaurant stay afloat
 <br>
 <br>
 
-**Available Data**
-<br>
+### Available Data
 Because Danny had a few years of experience as a data scientist - he was very aware that data collection was going to be critical for his business’ growth.
 <br>
 
@@ -37,10 +32,9 @@ All datasets exist within the pizza_runner database schema - be sure to include 
 <br>
 
 
-**A. Pizza  Metrics**
-__________
-<br>
-Q1. How many pizzas were ordered?
+## A. Pizza  Metrics
+
+#### Q1. How many pizzas were ordered?
 
     SELECT COUNT(*) AS no_of_pizzas_ordered
     FROM customer_orders
@@ -51,7 +45,7 @@ Q1. How many pizzas were ordered?
 
 <br>
 
-Q2. How many unique customer orders were made?
+#### Q2. How many unique customer orders were made?
 
     SELECT COUNT(DISTINCT order_id) AS unique_customer_orders
     FROM customer_orders
@@ -62,7 +56,7 @@ Q2. How many unique customer orders were made?
 
 <br>
 
-Q3. How many successful orders were delivered by each runner?
+#### Q3. How many successful orders were delivered by each runner?
 
     SELECT runner_id
     	, COUNT(*) AS number_of_orders_delivered
@@ -80,7 +74,7 @@ Q3. How many successful orders were delivered by each runner?
 
 <br>
 
-Q3. How many successful orders were delivered by each runner?
+#### Q3. How many successful orders were delivered by each runner?
 
     SELECT runner_id
     	, COUNT(*) AS number_of_orders_delivered
@@ -98,7 +92,7 @@ Q3. How many successful orders were delivered by each runner?
 
 <br>
 
-Q4. How many of each type of pizza was delivered?
+#### Q4. How many of each type of pizza was delivered?
 
     SELECT A. pizza_id
     	, C.pizza_name
@@ -119,7 +113,7 @@ Q4. How many of each type of pizza was delivered?
 
 <br>
 
-Q5. How many Vegetarian and Meatlovers were ordered by each customer?
+#### Q5. How many Vegetarian and Meatlovers were ordered by each customer?
 
     SELECT A.customer_id
     	, C.pizza_name
@@ -146,7 +140,7 @@ Q5. How many Vegetarian and Meatlovers were ordered by each customer?
 
 <br>
 
-Q6. What was the maximum number of pizzas delivered in a single order?
+#### Q6. What was the maximum number of pizzas delivered in a single order?
 
     SELECT COUNT(A. order_id) AS max_pizzas_delivered_in_single_order
     FROM customer_orders AS A
@@ -165,7 +159,7 @@ Q6. What was the maximum number of pizzas delivered in a single order?
 
 <br>
 
-Q7. For each customer, how many delivered pizzas had at least 1 change and how many had no changes?
+#### Q7. For each customer, how many delivered pizzas had at least 1 change and how many had no changes?
 
     SELECT A.customer_id
     	,CASE
@@ -193,7 +187,7 @@ Q7. For each customer, how many delivered pizzas had at least 1 change and how m
 
 <br>
 
-Q8. How many pizzas were delivered that had both exclusions and extras?
+#### Q8. How many pizzas were delivered that had both exclusions and extras?
 
     SELECT SUM(no_of_deliveredpizzas) AS no_of_deliveredpizzas_both
     FROM (SELECT A.customer_id
@@ -219,7 +213,7 @@ Q8. How many pizzas were delivered that had both exclusions and extras?
 <br>
 
 
-Q9. What was the total volume of pizzas ordered for each hour of the day?
+#### Q9. What was the total volume of pizzas ordered for each hour of the day?
 
     SELECT EXTRACT(HOUR FROM order_time) hour_of_the_day
     	, COUNT(*) AS volume_of_pizzas
@@ -238,7 +232,7 @@ Q9. What was the total volume of pizzas ordered for each hour of the day?
 
 <br>
 
-Q10. What was the volume of orders for each day of the week?
+#### Q10. What was the volume of orders for each day of the week?
 
     SELECT TO_CHAR(order_time, 'DAY') AS day_of_the_week
     	, COUNT(*) AS volume_of_pizzas
