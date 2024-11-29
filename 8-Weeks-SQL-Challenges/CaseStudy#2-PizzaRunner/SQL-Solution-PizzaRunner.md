@@ -216,3 +216,43 @@ Q8. How many pizzas were delivered that had both exclusions and extras?
 |--------------------------|
 |1                         |
 
+<br>
+
+
+Q9. What was the total volume of pizzas ordered for each hour of the day?
+
+    SELECT EXTRACT(HOUR FROM order_time) hour_of_the_day
+    	, COUNT(*) AS volume_of_pizzas
+    FROM customer_orders
+    GROUP BY hour_of_the_day
+    ORDER BY hour_of_the_day
+    ;
+|hour_of_the_day|volume_of_pizzas|
+|---------------|----------------|
+|11             |1               |
+|13             |3               |
+|18             |3               |
+|19             |1               |
+|21             |3               |
+|23             |3               |
+
+<br>
+
+Q10. What was the volume of orders for each day of the week?
+
+    SELECT TO_CHAR(order_time, 'DAY') AS day_of_the_week
+    	, COUNT(*) AS volume_of_pizzas
+    FROM customer_orders
+    GROUP BY day_of_the_week
+    ;
+
+|day_of_the_week|volume_of_pizzas|
+|---------------|----------------|
+|WEDNESDAY      |5               |
+|THURSDAY       |3               |
+|FRIDAY         |1               |
+|SATURDAY       |5               |
+
+<br>
+
+
