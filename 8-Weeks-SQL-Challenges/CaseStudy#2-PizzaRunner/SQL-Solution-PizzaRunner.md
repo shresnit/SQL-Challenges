@@ -34,7 +34,7 @@ All datasets exist within the pizza_runner database schema - be sure to include 
 
 ## A. Pizza  Metrics
 
-#### Q1. How many pizzas were ordered?
+#### A1. How many pizzas were ordered?
 
     SELECT COUNT(*) AS no_of_pizzas_ordered
     FROM customer_orders
@@ -45,7 +45,7 @@ All datasets exist within the pizza_runner database schema - be sure to include 
 
 <br>
 
-#### Q2. How many unique customer orders were made?
+#### A2. How many unique customer orders were made?
 
     SELECT COUNT(DISTINCT order_id) AS unique_customer_orders
     FROM customer_orders
@@ -56,7 +56,7 @@ All datasets exist within the pizza_runner database schema - be sure to include 
 
 <br>
 
-#### Q3. How many successful orders were delivered by each runner?
+#### A3. How many successful orders were delivered by each runner?
 
     SELECT runner_id
     	, COUNT(*) AS number_of_orders_delivered
@@ -74,7 +74,7 @@ All datasets exist within the pizza_runner database schema - be sure to include 
 
 <br>
 
-#### Q3. How many successful orders were delivered by each runner?
+#### A3. How many successful orders were delivered by each runner?
 
     SELECT runner_id
     	, COUNT(*) AS number_of_orders_delivered
@@ -92,7 +92,7 @@ All datasets exist within the pizza_runner database schema - be sure to include 
 
 <br>
 
-#### Q4. How many of each type of pizza was delivered?
+#### A4. How many of each type of pizza was delivered?
 
     SELECT A. pizza_id
     	, C.pizza_name
@@ -113,7 +113,7 @@ All datasets exist within the pizza_runner database schema - be sure to include 
 
 <br>
 
-#### Q5. How many Vegetarian and Meatlovers were ordered by each customer?
+#### A5. How many Vegetarian and Meatlovers were ordered by each customer?
 
     SELECT A.customer_id
     	, C.pizza_name
@@ -140,7 +140,7 @@ All datasets exist within the pizza_runner database schema - be sure to include 
 
 <br>
 
-#### Q6. What was the maximum number of pizzas delivered in a single order?
+#### A6. What was the maximum number of pizzas delivered in a single order?
 
     SELECT COUNT(A. order_id) AS max_pizzas_delivered_in_single_order
     FROM customer_orders AS A
@@ -159,7 +159,7 @@ All datasets exist within the pizza_runner database schema - be sure to include 
 
 <br>
 
-#### Q7. For each customer, how many delivered pizzas had at least 1 change and how many had no changes?
+#### A7. For each customer, how many delivered pizzas had at least 1 change and how many had no changes?
 
     SELECT A.customer_id
     	,CASE
@@ -187,7 +187,7 @@ All datasets exist within the pizza_runner database schema - be sure to include 
 
 <br>
 
-#### Q8. How many pizzas were delivered that had both exclusions and extras?
+#### A8. How many pizzas were delivered that had both exclusions and extras?
 
     SELECT SUM(no_of_deliveredpizzas) AS no_of_deliveredpizzas_both
     FROM (SELECT A.customer_id
@@ -213,7 +213,7 @@ All datasets exist within the pizza_runner database schema - be sure to include 
 <br>
 
 
-#### Q9. What was the total volume of pizzas ordered for each hour of the day?
+#### A9. What was the total volume of pizzas ordered for each hour of the day?
 
     SELECT EXTRACT(HOUR FROM order_time) hour_of_the_day
     	, COUNT(*) AS volume_of_pizzas
@@ -232,7 +232,7 @@ All datasets exist within the pizza_runner database schema - be sure to include 
 
 <br>
 
-#### Q10. What was the volume of orders for each day of the week?
+#### A10. What was the volume of orders for each day of the week?
 
     SELECT TO_CHAR(order_time, 'DAY') AS day_of_the_week
     	, COUNT(*) AS volume_of_pizzas
@@ -249,4 +249,175 @@ All datasets exist within the pizza_runner database schema - be sure to include 
 
 <br>
 
+## B. Runner and Customer Experience
+
+B1. How many runners signed up for each 1 week period? (i.e. week starts 2021-01-01)
+
+    SELECT FLOOR((registration_date - DATE '2021-01-01') / 7) + 1 AS week
+    	, COUNT(runner_id) AS no_of_runners
+    FROM runners
+    GROUP BY week
+    ORDER BY week
+    ;
+|week|no_of_runners|
+|----|-------------|
+|1   |2            |
+|2   |1            |
+|3   |1            |
+
+<br>
+
+B2. What was the average time in minutes it took for each runner to arrive at the Pizza Runner HQ to pickup the order?
+
+    SELECT runner_id
+    	, ROUND(AVG(minutes)) AS average_time_minutes
+    FROM (SELECT B.runner_id
+        	, EXTRACT(EPOCH FROM (TO_TIMESTAMP(B.pickup_time, 'YYYY-MM-DD HH24:MI:SS')
+                  	- A.order_time)) / 60 AS minutes
+    	  FROM customer_orders AS A
+    	  LEFT JOIN runner_orders AS B
+    			ON A.order_id = B.order_id
+    	  WHERE pickup_time != 'null') AS SQ
+    GROUP BY runner_id
+    ORDER BY runner_id
+    ;
+
+|runner_id|average_time_minutes|
+|---------|--------------------|
+|1        |16                  |
+|2        |24                  |
+|3        |10                  |
+
+<br>
+
+B3. Is there any relationship between the number of pizzas and how long the order takes to prepare?
+
+    SELECT no_of_pizzas_in_orders
+    	, ROUND(AVG(avg_prep_duration)) AS avg_prep_duration
+        
+    FROM (SELECT COUNT(order_id) AS no_of_pizzas_in_orders
+              , ROUND(AVG(minutes)) as avg_prep_duration
+    
+          FROM (SELECT A.order_id 
+                  , B.runner_id
+                  , EXTRACT(EPOCH FROM (TO_TIMESTAMP(B.pickup_time, 'YYYY-MM-DD HH24:MI:SS')
+                          - A.order_time)) / 60 AS minutes
+                FROM customer_orders AS A
+                LEFT JOIN runner_orders AS B
+                      ON A.order_id = B.order_id
+                WHERE pickup_time != 'null') AS SQ1
+    
+          GROUP BY order_id) AS SQ2
+    GROUP BY no_of_pizzas_in_orders
+    ORDER BY avg_prep_duration DESC
+    ;
+
+|no_of_pizzas_in_orders|avg_prep_duration|
+|----------------------|-----------------|
+|3                     |29               |
+|2                     |18               |
+|1                     |12               |
+
+*Note: More the number of pizzas in an order more the preparation time*
+
+<br>
+
+B4. What was the average distance travelled for each customer?
+
+    SELECT customer_id
+    	, AVG(total_distance) AS avg_distance_travelled_minutes
+        
+    FROM (SELECT A.customer_id
+              , A.order_id 
+              , MIN(CAST(REGEXP_REPLACE(B.distance, '[A-Za-z]', '', 'g') AS FLOAT)) AS total_distance
+          FROM customer_orders AS A
+          INNER JOIN runner_orders AS B
+              ON A.order_id = B.order_id
+          WHERE pickup_time != 'null'
+          GROUP BY A.order_id, A.customer_id
+          ORDER BY A.customer_id, A.order_id) AS SQ
+          
+    GROUP BY customer_id
+    ORDER BY customer_id
+    ;
+
+|customer_id|avg_distance_travelled_minutes|
+|-----------|----------------------|
+|101        |20                    |
+|102        |18.4                  |
+|103        |23.4                  |
+|104        |10                    |
+|105        |25                    |
+
+<br>
+
+B5. What was the difference between the longest and shortest delivery times for all orders?
+
+    SELECT MAX(total_duration) - MIN(total_duration) AS difference_longest_shortest_delivery_minutes
+    
+    FROM  (SELECT  A.order_id 
+              , MIN(CAST(REGEXP_REPLACE(B.duration, '[A-Za-z]', '', 'g') AS INT)) AS total_duration
+          FROM customer_orders AS A
+          INNER JOIN runner_orders AS B
+              ON A.order_id = B.order_id
+          WHERE pickup_time != 'null'
+          GROUP BY A.order_id, A.customer_id) AS SQ
+    ;
+
+|difference_longest_shortest_delivery_minutes|
+|--------------------------------------------|
+|30                                          |
+
+<br>
+
+B6. What was the average speed for each runner for each delivery and do you notice any trend for these values?SELEC
+
+    SELECT runner_id
+    	, order_id
+        , ROUND(AVG(CAST(REGEXP_REPLACE(distance, '[A-Za-z]', '', 'g') AS FLOAT)
+          	   		/
+    	  	  		(CAST(REGEXP_REPLACE(duration, '[A-Za-z]', '', 'g') AS FLOAT) / 60)
+          	  		)) AS avg_speed_km_per_hr
+    FROM runner_orders
+    WHERE pickup_time != 'null'
+    GROUP BY runner_id, order_id
+    ORDER BY runner_id, order_id
+
+|ner_id|order_id|avg_speed_km_per_hr|
+|------|--------|-------------------|
+|1     |1       |38                 |
+|1     |2       |44                 |
+|1     |3       |40                 |
+|1     |10      |60                 |
+|2     |4       |35                 |
+|2     |7       |60                 |
+|2     |8       |94                 |
+|3     |5       |40                 |
+
+<br>
+
+B7. What is the successful delivery percentage for each runner?
+
+    SELECT runner_id
+    	, CAST(delivery_flag AS FLOAT) / CAST(total_orders AS FLOAT) * 100 AS successful_delivery_percentage
+        
+    FROM (SELECT runner_id
+            , SUM(CASE
+              WHEN pickup_time = 'null' THEN 0 ELSE 1
+              END) AS delivery_flag
+            , COUNT(*) AS total_orders
+    	 FROM runner_orders
+         GROUP BY runner_id
+    	 ORDER BY runner_id) AS SQ
+    ;
+
+|runner_id|successful_delivery_percentage|
+|---------|------------------------------|
+|1        |100                           |
+|2        |75                            |
+|3        |50                            |
+
+<br>
+
+## B. Runner and Customer Experience
 
