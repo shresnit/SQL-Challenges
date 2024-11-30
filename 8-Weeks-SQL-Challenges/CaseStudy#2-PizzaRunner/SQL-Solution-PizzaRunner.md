@@ -419,5 +419,109 @@ B7. What is the successful delivery percentage for each runner?
 
 <br>
 
-## B. Runner and Customer Experience
+## C. Ingredient Optimisation
 
+C1. What are the standard ingredients for each pizza?
+
+    SELECT A.pizza_id
+    	, pizza_name
+    	, topping_id
+        , topping_name
+    FROM (SELECT pizza_id
+    		 , CAST(UNNEST(STRING_TO_ARRAY(toppings, ',')) AS INT) AS toppings -- split value to rows
+    	  FROM pizza_recipes) AS A
+    LEFT JOIN pizza_toppings AS B
+    	ON A.toppings = B.topping_id
+    INNER JOIN pizza_names AS C
+    	ON A.pizza_id = C.pizza_id
+    ORDER BY A.pizza_id, topping_id
+    ;
+
+|pizza_id|pizza_name|topping_id|topping_name|
+|--------|----------|----------|------------|
+|1       |Meatlovers|1         |Bacon       |
+|1       |Meatlovers|2         |BBQ Sauce   |
+|1       |Meatlovers|3         |Beef        |
+|1       |Meatlovers|4         |Cheese      |
+|1       |Meatlovers|5         |Chicken     |
+|1       |Meatlovers|6         |Mushrooms   |
+|1       |Meatlovers|8         |Pepperoni   |
+|1       |Meatlovers|10        |Salami      |
+|2       |Vegetarian|4         |Cheese      |
+|2       |Vegetarian|6         |Mushrooms   |
+|2       |Vegetarian|7         |Onions      |
+|2       |Vegetarian|9         |Peppers     |
+|2       |Vegetarian|11        |Tomatoes    |
+|2       |Vegetarian|12        |Tomato Sauce|
+
+<br>
+
+C2. What was the most commonly added extra?
+
+    SELECT topping_name AS most_common_extra
+    	,COUNT(*) AS COUNT
+    FROM (SELECT CAST(UNNEST(STRING_TO_ARRAY(extras, ',')) AS INT) AS extras
+    	  FROM customer_orders
+    	  WHERE extras NOT IN ('null', '')) AS A
+    INNER JOIN pizza_toppings AS B
+    	ON A.extras = B.topping_id
+    GROUP BY topping_name
+    ORDER BY COUNT DESC
+    LIMIT 1
+    ;
+
+|most_common_extra|count|
+|-----------------|-----|
+|Bacon            |4    |
+
+<br>
+
+C3. What was the most common exclusion?
+
+    SELECT topping_name AS most_common_exclusion
+    	,COUNT(*) AS COUNT
+    FROM (SELECT CAST(UNNEST(STRING_TO_ARRAY(exclusions, ',')) AS INT) AS exclusions
+    	  FROM customer_orders
+    	  WHERE exclusions NOT IN ('null', '')) AS A
+    INNER JOIN pizza_toppings AS B
+    	ON A.exclusions = B.topping_id
+    GROUP BY topping_name
+    ORDER BY COUNT DESC
+    LIMIT 1
+    ;
+
+|most_common_exclusion|count|
+|---------------------|-----|
+|Cheese               |4    |
+
+
+C4., -- Generate an order item for each record in the customers_orders table in the format of one of the following:
+-- Meat Lovers
+-- Meat Lovers - Exclude Beef
+-- Meat Lovers - Extra Bacon
+-- Meat Lovers - Exclude Cheese, Bacon - Extra Mushroom, Peppers
+
+
+    SELECT *
+    FROM  (SELECT id, order_id, customer_id, pizza_id
+              , CAST(UNNEST(STRING_TO_ARRAY(exclusions, ',')) AS INT) AS exclusions
+              , CAST(UNNEST(STRING_TO_ARRAY(extras, ',')) AS INT) AS extras
+           FROM (SELECT ROW_NUMBER() OVER() AS id
+                    , order_id
+                    , customer_id
+                    , pizza_id
+                    , CASE
+                      WHEN exclusions IN ('', 'null', NULL) THEN '0' 
+                      ELSE exclusions
+                      END AS exclusions 
+                    , CASE
+                      WHEN extras IN ('', 'null', NULL) THEN '0' 
+                      ELSE extras
+                      END AS extras
+                FROM customer_orders) AS SQ1
+           ) AS A
+          
+    LEFT JOIN  pizza_names AS B
+    	ON A.pizza_id = B.pizza_id
+    
+    ORDER BY id
