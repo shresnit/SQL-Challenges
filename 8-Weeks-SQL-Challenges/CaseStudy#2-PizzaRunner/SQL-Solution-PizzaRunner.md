@@ -834,11 +834,17 @@ C6. What is the total quantity of each ingredient used in all delivered pizzas s
 
 ## D. Pricing and Ratings
 
-D1 If a Meat Lovers pizza costs $12 and Vegetarian costs $10 and there were no charges for changes - how much money has Pizza Runner made so far if there are no delivery fees?
+D1. If a Meat Lovers pizza costs $12 and Vegetarian costs $10 and there were no charges for changes - how much money has Pizza Runner made so far if there are no delivery fees?
 
-<br>
-
-
+	SELECT CONCAT('$', CAST(SUM(CASE WHEN pizza_id = 1 THEN 12 ELSE 10 END) AS TEXT)) AS total_revenue
+	FROM customer_orders AS A
+	LEFT JOIN runner_orders AS B
+		ON A.order_id = B.order_id
+	WHERE B.pickup_time != 'null'
+	;
+|total_revenue|
+|-------------|
+|$138         |
 
 <br>
 
@@ -846,7 +852,37 @@ D2. What if there was an additional $1 charge for any pizza extras?
 <br>
 Add cheese is $1 extra
 
-<br>
+	WITH base AS	(SELECT A.order_id
+	            		, SUM(CASE WHEN pizza_id = 1 THEN 12 ELSE 10 END) base_price
+	                FROM customer_orders AS A
+	                LEFT JOIN runner_orders AS B
+	                    ON A.order_id = B.order_id
+	                WHERE B.pickup_time != 'null'
+	                GROUP BY A.order_id
+	                ),
+	
+	     extra AS   (SELECT order_id
+	                    , SUM(COUNT) AS extra_price
+	                FROM (
+	                      SELECT A.order_id
+	                          , UNNEST(STRING_TO_ARRAY((CASE WHEN extras IN ('', 'null') THEN NULL ELSE extras END), ',')) AS extras
+	                          , 1 AS COUNT
+	                      FROM customer_orders AS A
+	                      LEFT JOIN runner_orders AS B
+	                          ON A.order_id = B.order_id
+	                      WHERE B.pickup_time != 'null') AS SQ
+	                GROUP BY order_id
+	                 )
+	
+	SELECT CONCAT('$', CAST(SUM((base_price + COALESCE(extra_price, '0'))) AS TEXT)) AS total_revenue_with_extra
+	FROM base
+	LEFT JOIN extra
+		ON base.order_id = extra.order_id
+	;
+
+|total_revenue_with_extra|
+|------------------------|
+|$142                    |
 
 
 
