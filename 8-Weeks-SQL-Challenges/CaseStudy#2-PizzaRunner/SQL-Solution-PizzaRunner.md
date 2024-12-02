@@ -495,33 +495,104 @@ C3. What was the most common exclusion?
 |Cheese               |4    |
 
 
-C4., -- Generate an order item for each record in the customers_orders table in the format of one of the following:
+C4. Generate an order item for each record in the customers_orders table in the format of one of the following:
+<br>
 -- Meat Lovers
+<br>
 -- Meat Lovers - Exclude Beef
+<br>
 -- Meat Lovers - Extra Bacon
--- Meat Lovers - Exclude Cheese, Bacon - Extra Mushroom, Peppers
+<br>
+-- Meat Lovers - Exclude Cheese, Bacon - Extra Mushroom, Pepper
+<br>
 
-
-    SELECT *
-    FROM  (SELECT id, order_id, customer_id, pizza_id
-              , CAST(UNNEST(STRING_TO_ARRAY(exclusions, ',')) AS INT) AS exclusions
-              , CAST(UNNEST(STRING_TO_ARRAY(extras, ',')) AS INT) AS extras
-           FROM (SELECT ROW_NUMBER() OVER() AS id
+    WITH  A AS (SELECT ROW_NUMBER() OVER() AS id
+              , order_id
+              , customer_id
+              , pizza_id
+              , CASE
+                WHEN exclusions IN ('', 'null', NULL) THEN '0' 
+                ELSE exclusions
+                END AS exclusions 
+              , CASE
+                WHEN extras IN ('', 'null', NULL) THEN '0' 
+                ELSE extras
+                END AS extras
+          FROM customer_orders),
+           
+          B AS (SELECT id, order_id, customer_id, pizza_id
+        		, CAST(UNNEST(STRING_TO_ARRAY(exclusions, ',')) AS INT) AS exclusions
+        		, CAST(UNNEST(STRING_TO_ARRAY(extras, ',')) AS INT) AS extras
+     		FROM A ),
+            
+	      C AS (SELECT B.id
+              , B.order_id
+              , customer_id
+              , pizza_name
+              , P.topping_name AS exclusions
+              , extras
+          FROM B
+          LEFT JOIN pizza_toppings AS P
+              ON (B.exclusions = P.topping_id)
+          INNER JOIN pizza_names AS N
+            	ON B.pizza_id = N.pizza_id
+          ORDER BY id),
+          
+          D AS (SELECT C.id
+                  , C.order_id
+                  , C.customer_id
+                  , C.pizza_name
+                  , C.exclusions
+                  , Q.topping_name AS extras
+            FROM C
+            LEFT JOIN pizza_toppings AS Q
+                ON (C.extras = Q.topping_id)
+            ORDER BY id),
+            
+          E AS  (SELECT id
                     , order_id
                     , customer_id
-                    , pizza_id
-                    , CASE
-                      WHEN exclusions IN ('', 'null', NULL) THEN '0' 
-                      ELSE exclusions
-                      END AS exclusions 
-                    , CASE
-                      WHEN extras IN ('', 'null', NULL) THEN '0' 
-                      ELSE extras
-                      END AS extras
-                FROM customer_orders) AS SQ1
-           ) AS A
-          
-    LEFT JOIN  pizza_names AS B
-    	ON A.pizza_id = B.pizza_id
-    
-    ORDER BY id
+                    , pizza_name
+                    , STRING_AGG(exclusions, ', ' ORDER BY exclusions ) AS exclusions
+                    , STRING_AGG(extras, ', ' ORDER BY extras ) AS extras
+            FROM D
+            GROUP BY id, order_id, customer_id, pizza_name)
+            
+    SELECT order_id
+	, customer_id
+    , CASE
+      WHEN COALESCE(exclusions, 'Unknown') = 'Unknown'
+      	AND COALESCE(extras, 'Unknown') = 'Unknown' THEN pizza_name
+      WHEN COALESCE(exclusions, 'Unknown') = 'Unknown'
+      	AND COALESCE(extras, 'Unknown') != 'Unknown' THEN CONCAT(pizza_name, ' - ', 'Extra ', extras)
+      WHEN COALESCE(exclusions, 'Unknown') != 'Unknown'
+      	AND COALESCE(extras, 'Unknown') = 'Unknown' THEN CONCAT(pizza_name, ' - ', 'Exclude ', exclusions)
+      ELSE CONCAT(pizza_name, ' - ', 'Exclude ', exclusions,' - ', 'Extra ', extras)
+      END
+    FROM E
+    ORDER BY order_id
+    ;
+
+|order_id|customer_id|concat                                                         |
+|--------|-----------|---------------------------------------------------------------|
+|1       |101        |Meatlovers                                                     |
+|2       |101        |Meatlovers                                                     |
+|3       |102        |Meatlovers                                                     |
+|3       |102        |Vegetarian                                                     |
+|4       |103        |Meatlovers - Exclude Cheese                                    |
+|4       |103        |Meatlovers - Exclude Cheese                                    |
+|4       |103        |Vegetarian - Exclude Cheese                                    |
+|5       |104        |Meatlovers - Extra Bacon                                       |
+|6       |101        |Vegetarian                                                     |
+|7       |105        |Vegetarian - Extra Bacon                                       |
+|8       |102        |Meatlovers                                                     |
+|9       |103        |Meatlovers - Exclude Cheese - Extra Bacon, Chicken             |
+|10      |104        |Meatlovers                                                     |
+|10      |104        |Meatlovers - Exclude BBQ Sauce, Mushrooms - Extra Bacon, Cheese|
+
+<br>
+
+
+
+      
+
