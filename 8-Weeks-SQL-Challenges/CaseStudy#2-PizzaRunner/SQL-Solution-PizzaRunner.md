@@ -568,12 +568,12 @@ C4. Generate an order item for each record in the customers_orders table in the 
       WHEN COALESCE(exclusions, 'Unknown') != 'Unknown'
       	AND COALESCE(extras, 'Unknown') = 'Unknown' THEN CONCAT(pizza_name, ' - ', 'Exclude ', exclusions)
       ELSE CONCAT(pizza_name, ' - ', 'Exclude ', exclusions,' - ', 'Extra ', extras)
-      END
+      END AS order_item
     FROM E
     ORDER BY order_id
     ;
 
-|order_id|customer_id|concat                                                         |
+|order_id|customer_id|order_item                                                         |
 |--------|-----------|---------------------------------------------------------------|
 |1       |101        |Meatlovers                                                     |
 |2       |101        |Meatlovers                                                     |
