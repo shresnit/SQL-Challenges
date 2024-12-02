@@ -592,6 +592,130 @@ C4. Generate an order item for each record in the customers_orders table in the 
 
 <br>
 
+C5. Generate an alphabetically ordered comma separated ingredient list for each pizza order from the customer_orders table and add a 2x in front of any relevant ingredients.
+<br>
+For example: "Meat Lovers: 2xBacon, Beef, ... , Salami"
+
+
+	WITH  A AS (SELECT ROW_NUMBER() OVER() AS id
+	              , order_id
+	              , customer_id
+	              , pizza_id
+	              , CASE
+	                WHEN exclusions IN ('', 'null', NULL) THEN '0' 
+	                ELSE exclusions
+	                END AS exclusions 
+	              , CASE
+	                WHEN extras IN ('', 'null', NULL) THEN '0' 
+	                ELSE extras
+	                END AS extras
+	        	FROM customer_orders),
+	      
+	      B AS (SELECT pizza_id
+	              , CAST(UNNEST(STRING_TO_ARRAY(toppings, ',')) AS INT) AS topping_id
+	            FROM pizza_recipes
+	            ORDER BY pizza_id, topping_id ),
+	           
+	      C AS (SELECT A.id
+	           		, A.order_id
+	            	, A.customer_id
+	            	, A.pizza_id
+	            	, A.exclusions
+	            	, A.extras
+	            	, B.topping_id
+	            FROM A
+	            LEFT JOIN B
+	            	ON A.pizza_id = B.pizza_id
+	            ORDER BY A.id, A.order_id, A.customer_id
+	            ), 
+	       
+	       D AS (SELECT id
+	                , order_id
+	                , customer_id
+	                , pizza_id
+	                , topping_id
+	                , CAST(UNNEST(STRING_TO_ARRAY(exclusions, ',')) AS INT) AS exclusions
+	                , CAST(UNNEST(STRING_TO_ARRAY(extras, ',')) AS INT) AS extras
+	            FROM C
+	            ),
+	            
+	       E AS (SELECT id
+	                , order_id
+	                , customer_id
+	                , pizza_id
+	                , topping_id
+	                , (CASE
+	                   WHEN topping_id = exclusions THEN 1
+	                   WHEN topping_id = extras THEN 2
+	                   ELSE 0
+	                   END) AS Calc
+	                , exclusions
+	                , extras
+	            FROM D
+	            ),
+	            
+	       F AS (SELECT id
+	                , order_id
+	                , customer_id
+	                , pizza_name
+	                , topping_name
+	                , MAX(calc) as Flag
+	            FROM E
+	            LEFT JOIN pizza_names
+	                ON E.pizza_id = pizza_names.pizza_id
+	            LEFT JOIN pizza_toppings
+	                ON E.topping_id = pizza_toppings.topping_id
+	            WHERE calc IN (2, 0)
+	            GROUP BY id
+	                , order_id
+	                , customer_id
+	                , pizza_name
+	                , topping_name
+	            ORDER BY id
+	                , order_id
+	                , customer_id
+	                , pizza_name
+	                , topping_name
+	             ),
+	                
+	        G AS (SELECT id
+	               , order_id
+	               , customer_id
+	               , pizza_name
+	               , CASE
+	                  WHEN flag = 2 THEN CONCAT(' ', CAST(flag AS TEXT), 'X',topping_name) 
+	                  WHEN flag = 0 THEN CONCAT(' ',topping_name)
+	                  ELSE ''
+	                  END AS relevant_ingredients
+	            FROM F
+	            )
+	
+	SELECT order_id
+	    , customer_id
+	    , CONCAT('"', pizza_name,':', STRING_AGG(relevant_ingredients, ','), '"') AS relevant_ingredients
+	FROM G
+	GROUP BY id
+	    , order_id
+	    , customer_id
+	    , pizza_name
+     	;
+
+|order_id|customer_id|relevant_ingredients                                                                 |
+|--------|-----------|-------------------------------------------------------------------------------------|
+|1       |101        |Meatlovers: BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami    |
+|2       |101        |Meatlovers: BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami    |
+|3       |102        |Meatlovers: BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami    |
+|3       |102        |Vegetarian: Cheese, Mushrooms, Onions, Peppers, Tomato Sauce, Tomatoes               |
+|4       |103        |Meatlovers: BBQ Sauce, Bacon, Beef, Chicken, Mushrooms, Pepperoni, Salami            |
+|4       |103        |Meatlovers: BBQ Sauce, Bacon, Beef, Chicken, Mushrooms, Pepperoni, Salami            |
+|4       |103        |Vegetarian: Mushrooms, Onions, Peppers, Tomato Sauce, Tomatoes                       |
+|5       |104        |Meatlovers: BBQ Sauce, 2XBacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami  |
+|6       |101        |Vegetarian: Cheese, Mushrooms, Onions, Peppers, Tomato Sauce, Tomatoes               |
+|7       |105        |Vegetarian: Cheese, Mushrooms, Onions, Peppers, Tomato Sauce, Tomatoes               |
+|8       |102        |Meatlovers: BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami    |
+|9       |103        |Meatlovers: BBQ Sauce, 2XBacon, Beef, Cheese, 2XChicken, Mushrooms, Pepperoni, Salami|
+|10      |104        |Meatlovers: BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami    |
+|10      |104        |Meatlovers: BBQ Sauce, 2XBacon, Beef, 2XCheese, Chicken, Mushrooms, Pepperoni, Salami|
 
 
       
