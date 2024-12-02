@@ -665,7 +665,6 @@ For example: "Meat Lovers: 2xBacon, Beef, ... , Salami"
 	                ON E.pizza_id = pizza_names.pizza_id
 	            LEFT JOIN pizza_toppings
 	                ON E.topping_id = pizza_toppings.topping_id
-	            WHERE calc IN (2, 0)
 	            GROUP BY id
 	                , order_id
 	                , customer_id
@@ -688,6 +687,7 @@ For example: "Meat Lovers: 2xBacon, Beef, ... , Salami"
 	                  ELSE ''
 	                  END AS relevant_ingredients
 	            FROM F
+                WHERE flag IN (2, 0)  
 	            )
 	
 	SELECT order_id
@@ -698,25 +698,200 @@ For example: "Meat Lovers: 2xBacon, Beef, ... , Salami"
 	    , order_id
 	    , customer_id
 	    , pizza_name
-     	;
+    ;
 
-|order_id|customer_id|relevant_ingredients                                                                 |
-|--------|-----------|-------------------------------------------------------------------------------------|
-|1       |101        |Meatlovers: BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami    |
-|2       |101        |Meatlovers: BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami    |
-|3       |102        |Meatlovers: BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami    |
-|3       |102        |Vegetarian: Cheese, Mushrooms, Onions, Peppers, Tomato Sauce, Tomatoes               |
-|4       |103        |Meatlovers: BBQ Sauce, Bacon, Beef, Chicken, Mushrooms, Pepperoni, Salami            |
-|4       |103        |Meatlovers: BBQ Sauce, Bacon, Beef, Chicken, Mushrooms, Pepperoni, Salami            |
-|4       |103        |Vegetarian: Mushrooms, Onions, Peppers, Tomato Sauce, Tomatoes                       |
-|5       |104        |Meatlovers: BBQ Sauce, 2XBacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami  |
-|6       |101        |Vegetarian: Cheese, Mushrooms, Onions, Peppers, Tomato Sauce, Tomatoes               |
-|7       |105        |Vegetarian: Cheese, Mushrooms, Onions, Peppers, Tomato Sauce, Tomatoes               |
-|8       |102        |Meatlovers: BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami    |
-|9       |103        |Meatlovers: BBQ Sauce, 2XBacon, Beef, Cheese, 2XChicken, Mushrooms, Pepperoni, Salami|
-|10      |104        |Meatlovers: BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami    |
-|10      |104        |Meatlovers: BBQ Sauce, 2XBacon, Beef, 2XCheese, Chicken, Mushrooms, Pepperoni, Salami|
+|order_id|customer_id|relevant_ingredients                                                               |
+|--------|-----------|-----------------------------------------------------------------------------------|
+|1       |101        |Meatlovers: BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami  |
+|2       |101        |Meatlovers: BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami  |
+|3       |102        |Meatlovers: BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami  |
+|3       |102        |Vegetarian: Cheese, Mushrooms, Onions, Peppers, Tomato Sauce, Tomatoes             |
+|4       |103        |Meatlovers: BBQ Sauce, Bacon, Beef, Chicken, Mushrooms, Pepperoni, Salami          |
+|4       |103        |Meatlovers: BBQ Sauce, Bacon, Beef, Chicken, Mushrooms, Pepperoni, Salami          |
+|4       |103        |Vegetarian: Mushrooms, Onions, Peppers, Tomato Sauce, Tomatoes                     |
+|5       |104        |Meatlovers: BBQ Sauce, 2XBacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami|
+|6       |101        |Vegetarian: Cheese, Mushrooms, Onions, Peppers, Tomato Sauce, Tomatoes             |
+|7       |105        |Vegetarian: Cheese, Mushrooms, Onions, Peppers, Tomato Sauce, Tomatoes             |
+|8       |102        |Meatlovers: BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami  |
+|9       |103        |Meatlovers: BBQ Sauce, 2XBacon, Beef, 2XChicken, Mushrooms, Pepperoni, Salami      |
+|10      |104        |Meatlovers: BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami  |
+|10      |104        |Meatlovers: 2XBacon, Beef, 2XCheese, Chicken, Pepperoni, Salami                    |
 
 
+<br>
+
+C6. What is the total quantity of each ingredient used in all delivered pizzas sorted by most frequent first?
+
+	WITH  A AS (SELECT ROW_NUMBER() OVER() AS id
+	              , order_id
+	              , customer_id
+	              , pizza_id
+	              , CASE
+	                WHEN exclusions IN ('', 'null', NULL) THEN '0' 
+	                ELSE exclusions
+	                END AS exclusions 
+	              , CASE
+	                WHEN extras IN ('', 'null', NULL) THEN '0' 
+	                ELSE extras
+	                END AS extras
+	        	FROM customer_orders),
+	      
+	      B AS (SELECT pizza_id
+	              , CAST(UNNEST(STRING_TO_ARRAY(toppings, ',')) AS INT) AS topping_id
+	            FROM pizza_recipes
+	            ORDER BY pizza_id, topping_id ),
+	           
+	      C AS (SELECT A.id
+	           		, A.order_id
+	            	, A.customer_id
+	            	, A.pizza_id
+	            	, A.exclusions
+	            	, A.extras
+	            	, B.topping_id
+	            FROM A
+	            LEFT JOIN B
+	            	ON A.pizza_id = B.pizza_id
+	            ORDER BY A.id, A.order_id, A.customer_id
+	            ), 
+	       
+	       D AS (SELECT id
+	                , order_id
+	                , customer_id
+	                , pizza_id
+	                , topping_id
+	                , CAST(UNNEST(STRING_TO_ARRAY(exclusions, ',')) AS INT) AS exclusions
+	                , CAST(UNNEST(STRING_TO_ARRAY(extras, ',')) AS INT) AS extras
+	            FROM C
+	            ),
+	            
+	       E AS (SELECT id
+	                , order_id
+	                , customer_id
+	                , pizza_id
+	                , topping_id
+	                , (CASE
+	                   WHEN topping_id = exclusions THEN 1
+	                   WHEN topping_id = extras THEN 2
+	                   ELSE 0
+	                   END) AS Calc
+	                , exclusions
+	                , extras
+	            FROM D
+	            ),
+	            
+	       F AS (SELECT id
+	                , order_id
+	                , customer_id
+	                , pizza_name
+                 	, E.topping_id
+	                , topping_name
+	                , MAX(calc) as Flag
+	            FROM E
+	            LEFT JOIN pizza_names
+	                ON E.pizza_id = pizza_names.pizza_id
+	            LEFT JOIN pizza_toppings
+	                ON E.topping_id = pizza_toppings.topping_id
+	            GROUP BY id
+	                , order_id
+	                , customer_id
+	                , pizza_name
+                 	, E.topping_id
+	                , topping_name
+	            ORDER BY id
+	                , order_id
+	                , customer_id
+	                , pizza_name
+                 	, E.topping_id
+	                , topping_name
+	             )
+	
+	SELECT topping_name
+		, SUM(CASE WHEN flag = 0 THEN 1 ELSE flag END) AS total_quantity
+	FROM F
+	INNER JOIN runner_orders
+		ON F.order_id = runner_orders.order_id
+	WHERE pickup_time != 'null' AND flag IN (0, 2)
+	GROUP BY topping_name
+	ORDER BY total_quantity DESC
+    ;
       
+|topping_name|total_quantity|
+|------------|--------------|
+|Bacon       |11            |
+|Mushrooms   |11            |
+|Cheese      |10            |
+|Pepperoni   |9             |
+|Chicken     |9             |
+|Salami      |9             |
+|Beef        |9             |
+|BBQ Sauce   |8             |
+|Tomato Sauce|3             |
+|Onions      |3             |
+|Tomatoes    |3             |
+|Peppers     |3             |
+
+<br>
+
+## D. Pricing and Ratings
+
+D1 If a Meat Lovers pizza costs $12 and Vegetarian costs $10 and there were no charges for changes - how much money has Pizza Runner made so far if there are no delivery fees?
+
+<br>
+
+
+
+<br>
+
+D2. What if there was an additional $1 charge for any pizza extras?
+<br>
+Add cheese is $1 extra
+
+<br>
+
+
+
+<br>
+
+D3. The Pizza Runner team now wants to add an additional ratings system that allows customers to rate their runner, how would you design an additional table for this new dataset - generate a schema for this new table and insert your own data for ratings for each successful customer order between 1 to 5.
+
+<br>
+
+
+
+<br>
+
+D4. Using your newly generated table - can you join all of the information together to form a table which has the following information for successful deliveries?
+<br>
+customer_id
+<br>
+order_id
+<br>
+runner_id
+<br>
+rating
+<br>
+order_time
+<br>
+pickup_time
+<br>
+Time between order and pickup
+<br>
+Delivery duration
+<br>
+Average speed
+<br>
+Total number of pizzas
+<br>
+
+D5. If a Meat Lovers pizza was $12 and Vegetarian $10 fixed prices with no cost for extras and each runner is paid $0.30 per kilometre traveled - how much money does Pizza Runner have left over after these deliveries?
+
+<br>
+
+
+
+<br>
+
+## E. Bonus Questions
+If Danny wants to expand his range of pizzas - how would this impact the existing data design? Write an INSERT statement to demonstrate what would happen if a new Supreme pizza with all the toppings was added to the Pizza Runner menu?
+
 
