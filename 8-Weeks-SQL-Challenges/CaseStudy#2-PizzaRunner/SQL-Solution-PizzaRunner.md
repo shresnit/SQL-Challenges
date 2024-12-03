@@ -865,7 +865,9 @@ Add cheese is $1 extra
 	                    , SUM(COUNT) AS extra_price
 	                FROM (
 	                      SELECT A.order_id
-	                          , UNNEST(STRING_TO_ARRAY((CASE WHEN extras IN ('', 'null') THEN NULL ELSE extras END), ',')) AS extras
+	                          , UNNEST(STRING_TO_ARRAY(
+			   		  (CASE WHEN extras IN ('', 'null') THEN NULL ELSE extras END)
+	  				   , ',')) AS extras
 	                          , 1 AS COUNT
 	                      FROM customer_orders AS A
 	                      LEFT JOIN runner_orders AS B
@@ -890,9 +892,39 @@ Add cheese is $1 extra
 
 D3. The Pizza Runner team now wants to add an additional ratings system that allows customers to rate their runner, how would you design an additional table for this new dataset - generate a schema for this new table and insert your own data for ratings for each successful customer order between 1 to 5.
 
-<br>
+	DROP TABLE IF EXISTS ratings;
+	CREATE TABLE ratings (
+	  "order_id" INTEGER,
+	  "rating" INTEGER
+	);
+	INSERT INTO ratings
+	  ("order_id", "rating")
+	VALUES
+	  (1, '4'),
+	  (2, '5'),
+	  (3, '5'),
+	  (4, '4'),
+	  (5, '4'),
+	  (6, NULL),
+	  (7, '3'),
+	  (8, '5'),
+	  (9, NULL),
+	  (10, '4')
+	  ;
 
-
+Note: Table Created
+|order_id|rating|
+|--------|------|
+|1       |4     |
+|2       |5     |
+|3       |5     |
+|4       |4     |
+|5       |4     |
+|6       |null  |
+|7       |3     |
+|8       |5     |
+|9       |null  |
+|10      |4     |
 
 <br>
 
@@ -917,13 +949,84 @@ Delivery duration
 Average speed
 <br>
 Total number of pizzas
+
+	WITH X AS   (SELECT A.order_id
+	                , customer_id
+	             	, MAX(order_time) AS order_time
+	                , COUNT(*) AS number_of_pizzas
+	                , B.rating
+	            FROM customer_orders AS A
+	            LEFT JOIN ratings AS B
+	                ON A.order_id = B.order_id
+	            GROUP BY A.order_id
+	                , customer_id
+	                , B.rating
+	            ORDER BY A.order_id
+	             )
+	             
+	SELECT customer_id
+		, X.order_id AS order_id
+	    , runner_id
+	    , rating
+	    , order_time
+	    , CAST(pickup_time AS TIMESTAMP) AS pickup_time
+	    , ROUND(
+	      EXTRACT(EPOCH FROM (CAST(pickup_time AS TIMESTAMP) - order_time)) / 60
+	      ) AS time_btw_order_pickup_minutes
+	    , CAST(REGEXP_REPLACE(duration, '[A-Za-z]', '', 'g') AS INT) AS duration_minutes
+	    , ROUND((CAST(REGEXP_REPLACE(distance, '[A-Za-z]', '', 'g') AS FLOAT)
+	      	   		/
+	    		(CAST(REGEXP_REPLACE(duration, '[A-Za-z]', '', 'g') AS FLOAT) / 60))
+	       	   ) AS avg_speed_km_per_hr
+		 , number_of_pizzas AS total_number_of_pizzas
+	FROM X
+	LEFT JOIN runner_orders
+		ON X.order_id = runner_orders.order_id
+	WHERE pickup_time != 'null'
+	;
+
+|customer_id|order_id|runner_id|rating|order_time         |pickup_time        |time_btw_order_pickup_minutes|duration_minutes|avg_speed_km_per_hr|total_number_of_pizzas|
+|-----------|--------|---------|------|-------------------|-------------------|-----------------------------|----------------|-------------------|----------------------|
+|101        |1       |1        |4     |2020-01-01 18:05:02|2020-01-01 18:15:34|11                           |32              |38                 |1                     |
+|101        |2       |1        |5     |2020-01-01 19:00:52|2020-01-01 19:10:54|10                           |27              |44                 |1                     |
+|102        |3       |1        |5     |2020-01-02 23:51:23|2020-01-03 00:12:37|21                           |20              |40                 |2                     |
+|103        |4       |2        |4     |2020-01-04 13:23:46|2020-01-04 13:53:03|29                           |40              |35                 |3                     |
+|104        |5       |3        |4     |2020-01-08 21:00:29|2020-01-08 21:10:57|10                           |15              |40                 |1                     |
+|105        |7       |2        |3     |2020-01-08 21:20:29|2020-01-08 21:30:45|10                           |25              |60                 |1                     |
+|102        |8       |2        |5     |2020-01-09 23:54:33|2020-01-10 00:15:02|20                           |15              |94                 |1                     |
+|104        |10      |1        |4     |2020-01-11 18:34:49|2020-01-11 18:50:20|16                           |10              |60                 |2                     |
+
 <br>
 
 D5. If a Meat Lovers pizza was $12 and Vegetarian $10 fixed prices with no cost for extras and each runner is paid $0.30 per kilometre traveled - how much money does Pizza Runner have left over after these deliveries?
 
-<br>
+	WITH X AS   (SELECT A.order_id
+	                , customer_id
+	             	, MAX(order_time) AS order_time
+	                , SUM(CASE WHEN A.pizza_id = 1 THEN 12 ELSE 10 END) AS pizza_price 
+	                , B.rating
+	            FROM customer_orders AS A
+	            LEFT JOIN ratings AS B
+	                ON A.order_id = B.order_id
+	            GROUP BY A.order_id
+	                , customer_id
+	                , B.rating
+	            ORDER BY A.order_id
+	             )
+	             
+	SELECT CONCAT('$',
+	                   CAST (ROUND(
+	                   SUM(
+	                   pizza_price -
+	                   CAST(REGEXP_REPLACE(distance, '[A-Za-z]', '', 'g') AS FLOAT) * 0.3 
+	                   )) AS TEXT)) AS amount_leftover
+	FROM X
+	LEFT JOIN runner_orders
+		ON X.order_id = runner_orders.order_id
 
-
+|amount_leftover|
+|---------------|
+|$94            |
 
 <br>
 
