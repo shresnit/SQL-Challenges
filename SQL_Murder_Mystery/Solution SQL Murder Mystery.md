@@ -1,5 +1,4 @@
-**SQL Murder Mystery**
--------------------
+# SQL Murder Mystery
 <br>
 Challenge Source: https://mystery.knightlab.com/#experienced
 <br>
@@ -28,7 +27,7 @@ A crime has taken place and the detective needs your help. The detective gave yo
   <br>
   <br>
 
-**Solution**
+## Solution
 
 <br>
 1. Finding the related case in crime scene report
