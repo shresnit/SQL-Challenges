@@ -242,6 +242,47 @@ FROM B
 B7. What is the customer count and percentage breakdown of all 5 plan_name values at 2020-12-31?
 
 
+```sql
+WITH A AS (SELECT customer_id
+           , S.plan_id
+           , LAG(S.plan_id) OVER (PARTITION BY customer_id ORDER BY  start_date) AS previous_plan
+           , LAG(start_date) OVER (PARTITION BY customer_id ORDER BY start_date) AS previous_plan_start_date
+           , CAST ((CASE
+                    WHEN S.plan_id = 0 THEN start_date + INTERVAL '6 days'
+                    WHEN S.plan_id = 1 THEN start_date + INTERVAL '1 month' - INTERVAL '1 day'
+                    WHEN S.plan_id = 2 THEN start_date + INTERVAL '1 month' - INTERVAL '1 day'
+                    WHEN S.plan_id = 3 THEN start_date + INTERVAL '12 months' - INTERVAL '1 day'
+                    ELSE NULL
+                    END) AS DATE) AS end_date 
+           , start_date
+           FROM subscriptions AS S
+		   LEFT JOIN plans AS P
+				ON S.plan_id = P.plan_id
+          ORDER BY customer_id, start_date),
+           
+	 B AS  (SELECT customer_id
+            , plan_id
+            , CAST( CASE
+                    WHEN plan_id = 4 THEN LAG(end_date) OVER (PARTITION BY customer_id ORDER BY start_date) + INTERVAL '1 day'
+                    WHEN plan_id > previous_plan THEN start_date 
+                    WHEN plan_id < previous_plan THEN previous_plan_start_date 
+                    ELSE start_date
+                    END 
+               AS DATE ) AS adjusted_start_date
+            , start_date
+            , CASE
+              WHEN plan_id = 4 THEN CURRENT_DATE
+              WHEN ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY start_date DESC)  = 1 AND (plan_id != 4) THEN CURRENT_DATE
+              ELSE end_date
+              END AS end_date
+            , ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY start_date DESC) AS Current_Plan_Flag
+		FROM A)
+        
+SELECT plan_id
+	, CASE WHEN end_date >= '2020-12-31' THEN 1
+FROM B
+WHERE Current_Plan_Flag = 1
+```
 
 
 
