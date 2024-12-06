@@ -389,7 +389,7 @@ WITH A AS	(SELECT customer_id
 
 SELECT ROUND(AVG(days)) AS days_on_average
 FROM B
-WHERE plan_id = 0 --Limiting to one customer record where calculation was performed
+WHERE plan_id = 0 --Limiting to each customer record where calculation was performed
 ;
 ```
 |days_on_average|
