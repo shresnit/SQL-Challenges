@@ -241,48 +241,96 @@ FROM B
 
 B7. What is the customer count and percentage breakdown of all 5 plan_name values at 2020-12-31?
 
-
 ```sql
-WITH A AS (SELECT customer_id
-           , S.plan_id
-           , LAG(S.plan_id) OVER (PARTITION BY customer_id ORDER BY  start_date) AS previous_plan
-           , LAG(start_date) OVER (PARTITION BY customer_id ORDER BY start_date) AS previous_plan_start_date
-           , CAST ((CASE
-                    WHEN S.plan_id = 0 THEN start_date + INTERVAL '6 days'
-                    WHEN S.plan_id = 1 THEN start_date + INTERVAL '1 month' - INTERVAL '1 day'
-                    WHEN S.plan_id = 2 THEN start_date + INTERVAL '1 month' - INTERVAL '1 day'
-                    WHEN S.plan_id = 3 THEN start_date + INTERVAL '12 months' - INTERVAL '1 day'
-                    ELSE NULL
-                    END) AS DATE) AS end_date 
-           , start_date
-           FROM subscriptions AS S
-		   LEFT JOIN plans AS P
-				ON S.plan_id = P.plan_id
-          ORDER BY customer_id, start_date),
-           
-	 B AS  (SELECT customer_id
-            , plan_id
-            , CAST( CASE
-                    WHEN plan_id = 4 THEN LAG(end_date) OVER (PARTITION BY customer_id ORDER BY start_date) + INTERVAL '1 day'
-                    WHEN plan_id > previous_plan THEN start_date 
-                    WHEN plan_id < previous_plan THEN previous_plan_start_date 
-                    ELSE start_date
-                    END 
-               AS DATE ) AS adjusted_start_date
+/*
+Approached the solution based on case study logic
+"If customers downgrade from a pro plan or cancel their subscription - the higher plan will
+remain in place until the period is over"
+"When customers upgrade their account from a basic plan to a pro or annual pro plan - the higher
+plan will take effect straightaway."
+*/
+
+
+/*
+Identifying the latest subscription using row_number and using LAG window function to bring previous
+plan in the same row of latest subscription plan and performing end_date calculation
+*/
+
+WITH A AS (SELECT ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY customer_id, start_date DESC) AS row_no
+            , customer_id
+            , S.plan_id
+            , LAG(S.plan_id) OVER (PARTITION BY customer_id ORDER BY  start_date) AS previous_plan_id
+            , plan_name
+            , LAG(plan_name) OVER (PARTITION BY customer_id ORDER BY  start_date) AS previous_plan_name
             , start_date
-            , CASE
-              WHEN plan_id = 4 THEN CURRENT_DATE
-              WHEN ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY start_date DESC)  = 1 AND (plan_id != 4) THEN CURRENT_DATE
-              ELSE end_date
-              END AS end_date
-            , ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY start_date DESC) AS Current_Plan_Flag
-		FROM A)
-        
-SELECT plan_id
-	, CASE WHEN end_date >= '2020-12-31' THEN 1
-FROM B
-WHERE Current_Plan_Flag = 1
+            , LAG(start_date) OVER (PARTITION BY customer_id ORDER BY start_date) AS previous_plan_start_date
+            , CAST ((CASE
+                     WHEN S.plan_id = 0 THEN start_date + INTERVAL '6 days'
+                     WHEN S.plan_id = 1 THEN start_date + INTERVAL '1 month' - INTERVAL '1 day'
+                     WHEN S.plan_id = 2 THEN start_date + INTERVAL '1 month' - INTERVAL '1 day'
+                     WHEN S.plan_id = 3 THEN start_date + INTERVAL '12 months' - INTERVAL '1 day'
+                     ELSE NULL
+                     END) AS DATE) AS end_date
+          FROM subscriptions AS S
+          LEFT JOIN plans AS P
+                      ON S.plan_id = P.plan_id
+          WHERE start_date <= '2020-12-31' ),
+ 
+ -- Identiying previous_plan end date 
+ 
+     B AS (SELECT *
+		, LAG(end_date) OVER (PARTITION BY customer_id ORDER BY start_date) AS previous_plan_end_date
+	   FROM A
+	   ORDER BY customer_id, row_no),
+  
+-- Making calculation based on case study logic
+
+     C AS  (SELECT * 
+              , CASE
+                WHEN plan_id = 0 THEN 1
+                WHEN plan_id = 1 THEN 1
+                WHEN (plan_id = 2 AND previous_plan_id = 3) AND (previous_plan_end_date < '2020-12-31') THEN 1
+                WHEN plan_id = 2 THEN 1
+                WHEN (plan_id = 4 AND previous_plan_id IN(0,1,2,3)) AND (previous_plan_end_date < '2020-12-31') THEN 1
+                WHEN plan_id = 3 THEN 1
+                ELSE 0
+                END AS active_plan_flag
+          FROM B
+          WHERE row_no = 1 -- Selecting only latest subscription plan rows
+          ORDER BY customer_id, start_date),
+
+-- replacing the plan name if the case study logic exist
+
+     D AS (SELECT CASE
+                 WHEN active_plan_flag = 0 THEN previous_plan_name
+                 ELSE plan_name
+                 END AS plan_name
+                 , (SELECT COUNT(*) FROM C) AS total_customer
+          FROM C)
+
+-- Final Calculation
+
+SELECT plan_name
+	, COUNT(*) AS no_of_customers
+    , ROUND(COUNT(*) / AVG(total_customer) * 100, 1) AS percentage
+FROM D
+GROUP BY plan_name
+ORDER BY percentage DESC
 ```
+|plan_name    |no_of_customers|percentage|
+|-------------|---------------|----------|
+|pro monthly  |327            |32.7      |
+|churn        |234            |23.4      |
+|basic monthly|225            |22.5      |
+|pro annual   |195            |19.5      |
+|trial        |19             |1.9       |
+
+<br>
+
+B8. How many customers have upgraded to an annual plan in 2020?
+
+
+
 
 
 
