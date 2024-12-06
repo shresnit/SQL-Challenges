@@ -329,9 +329,76 @@ ORDER BY percentage DESC
 
 B8. How many customers have upgraded to an annual plan in 2020?
 
+```sql
+/*
+Use LAG window function to identify the previous_plan of the customer and applying case fuction to flag
+the records upgraded to an annual plan in 2020
+*/
 
+WITH A AS	(SELECT * 
+              , CASE
+                WHEN S.plan_id = 3 AND LAG(S.plan_id) OVER (PARTITION BY customer_id ORDER BY  start_date) < 3 THEN 1
+                ELSE 0
+                END AS annual_plan_upgrade_flag
+          	FROM subscriptions AS S
+         	 LEFT JOIN plans AS P
+              ON S.plan_id = P.plan_id
+         	 WHERE EXTRACT( YEAR FROM start_date) = 2020
+          	ORDER BY customer_id, start_date)
+            
+SELECT COUNT(customer_id) AS customers_upgraded_annual_plan
+FROM A
+WHERE annual_plan_upgrade_flag = 1
+;
+```
+|customers_upgraded_annual_plan|
+|------------------------------|
+|195                           |
 
+<br>
 
+B9. How many days on average does it take for a customer to an annual plan from the day they join Foodie-Fi?
+
+```sql
+/*
+Approach
+Limit the records to customers who started trial and later upgraded to annual plan.
+Assigning start date of annual plan in same row of trial using LEAD window function and then calculating the days difference
+*/
+
+WITH A AS	(SELECT customer_id
+             	, S.plan_id
+             	, start_date
+             	, MIN(S.plan_id) OVER (PARTITION BY customer_id ORDER BY customer_id) AS min_plan_id --identfying the lowest plan (trial for sure)
+				, MAX(S.plan_id) OVER (PARTITION BY customer_id ORDER BY customer_id) AS max_plan_id -- identfying the highest plan
+
+          	FROM subscriptions AS S
+         	LEFT JOIN plans AS P
+              ON S.plan_id = P.plan_id
+         	WHERE S.plan_id != 4 -- removing churn first
+			ORDER BY customer_id, start_date
+            ),
+ 
+ -- Bringing start date of annual plan in same row of trial and then calculating the days difference
+      B AS  (SELECT customer_id
+                , plan_id
+                , (LEAD(start_date) OVER (PARTITION BY customer_id ORDER BY  start_date) - start_date) AS days    
+            FROM A
+            WHERE (min_plan_id = 0 AND max_plan_id = 3) AND (plan_id IN (0,3)) -- Limiting to customers with trial and annual plan
+             )
+
+SELECT ROUND(AVG(days)) AS days_on_average
+FROM B
+WHERE plan_id = 0 --Limiting to one customer record where calculation was performed
+;
+```
+|days_on_average|
+|---------------|
+|105            |
+
+<br>
+
+B.10
 
 
 
