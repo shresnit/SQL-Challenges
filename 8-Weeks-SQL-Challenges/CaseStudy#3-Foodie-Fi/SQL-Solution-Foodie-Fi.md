@@ -396,9 +396,211 @@ WHERE plan_id = 0 --Limiting to each customer record where calculation was perfo
 |---------------|
 |105            |
 
+<br> 
+
+B.10 Can you further breakdown this average value into 30 day periods (i.e. 0-30 days, 31-60 days etc)
+```sql
+WITH A AS	(SELECT customer_id
+             	, S.plan_id
+             	, start_date
+             	, MIN(S.plan_id) OVER (PARTITION BY customer_id ORDER BY customer_id) AS min_plan_id --identfying the lowest plan (trial for sure)
+				, MAX(S.plan_id) OVER (PARTITION BY customer_id ORDER BY customer_id) AS max_plan_id -- identfying the highest plan
+
+          	FROM subscriptions AS S
+         	LEFT JOIN plans AS P
+              ON S.plan_id = P.plan_id
+         	WHERE S.plan_id != 4 -- removing churn first
+			ORDER BY customer_id, start_date
+            ),
+ 
+ -- Bringing start date of annual plan in same row of trial and then calculating the days difference
+      B AS  (SELECT customer_id
+                , plan_id
+                , (LEAD(start_date) OVER (PARTITION BY customer_id ORDER BY  start_date) - start_date) AS days    
+            FROM A
+            WHERE (min_plan_id = 0 AND max_plan_id = 3) AND (plan_id IN (0,3)) -- Limiting to customers with trial and annual plan
+             ),
+
+	  C	AS	(SELECT  CASE
+                     WHEN days <= 30 THEN '0-30 days'
+                     WHEN days > 30 AND days <= 60 THEN '30-60 days'
+                     WHEN days > 60 AND days <= 90 THEN '60-90 days'
+                     WHEN days > 90 AND days <= 120 THEN '90-120 days'
+                     WHEN days > 120 AND days <= 150 THEN '120-150 days'
+                     WHEN days > 150 AND days <= 180 THEN '150-180 days'
+                     WHEN days > 180 AND days <= 210 THEN '180-210 days'
+                     WHEN days > 210 AND days <= 240 THEN '210-240 days'
+                     WHEN days > 240 AND days <= 270 THEN '240-270 days'
+                     WHEN days > 270 AND days <= 300 THEN '270-300 days'
+                     ELSE '>300 days'
+                     END AS period
+                     , days
+              FROM B
+              WHERE plan_id = 0 --Limiting to each customer record where calculation was performed
+             )
+
+SELECT period
+	, ROUND(AVG(days)) AS days_on_average
+FROM C
+GROUP BY period
+;
+```
+|period      |days_on_average|
+|------------|---------------|
+|0-30 days   |10             |
+|120-150 days|133            |
+|150-180 days|162            |
+|180-210 days|191            |
+|210-240 days|224            |
+|240-270 days|257            |
+|270-300 days|285            |
+|30-60 days  |42             |
+|60-90 days  |71             |
+|90-120 days |101            |
+|>300 days   |337            |
+
 <br>
 
-B.10
+B11. How many customers downgraded from a pro monthly to a basic monthly plan in 2020?
+
+```sql
+/*
+Approach
+Limit the records to customers who had instances of basic and pro monthly plans
+Identify customers with basic monthly plan who has pro monthly as previous plan
+*/
+
+WITH A AS	(SELECT customer_id
+             	, S.plan_id
+             	, start_date
+          	FROM subscriptions AS S
+         	LEFT JOIN plans AS P
+              ON S.plan_id = P.plan_id
+         	WHERE S.plan_id NOT IN (0, 3, 4) -- removing trial, annual and churn
+             	  AND EXTRACT(YEAR FROM start_date) = 2020 
+			ORDER BY customer_id, start_date
+            ),
+
+	 B AS 	(SELECT *
+				, LAG(plan_id) OVER (PARTITION BY customer_id ORDER BY start_date) AS previous_plan_id 
+			FROM A
+             )
+SELECT *
+FROM B 
+WHERE previous_plan_id = 2
+;
+```
+|      |
+|------------|
+|There are no records where customers downgraded from a pro monthly to a basic monthly plan in 2020|
+
+<br>
+
+## C. Challenge Payment Question
+The Foodie-Fi team wants you to create a new payments table for the year 2020 that includes amounts paid by each customer in the subscriptions table with the following requirements:
+
+- monthly payments always occur on the same day of month as the original start_date of any monthly paid plan
+- upgrades from basic to monthly or pro plans are reduced by the current paid amount in that month and start immediately
+- upgrades from pro monthly to pro annual are paid at the end of the current billing period and also starts at the end of the month period
+- once a customer churns they will no longer make payments
+
+```sql
+/*
+Approach
+First, using LEAD and LAG windows functions to bring start date of the next subscription plan for every record.
+Then, generating monthly payment schedule for basic and pro monthly plan, generating annual payment plans and a record for the churns.
+Then, removing records that overlaps with the help of next subscription plan start_date
+Finally, applying calculationsm based on the cast study question logic
+*/
+
+
+-- Joining the subscriptions and plans table and removing records of trial
+-- LEAD LAG function to determine previous and next plan information
+WITH A AS 	(SELECT ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY start_date) AS row_number
+             	, customer_id
+             	, S.plan_id
+             	, P.plan_name
+             	, start_date
+             	, LAG(S.plan_id) OVER (PARTITION BY customer_id ORDER BY start_date) AS previous_plan_id
+             	, LEAD(S.plan_id) OVER (PARTITION BY customer_id ORDER BY start_date) AS next_plan_id
+             	, COALESCE(LEAD(S.start_date) OVER (PARTITION BY customer_id ORDER BY start_date),
+			   '2020-12-31') AS next_plan_start_date
+             	, price
+             	, LAG(P.price) OVER (PARTITION BY customer_id ORDER BY start_date) AS previous_plan_price
+                , CAST('2020-12-31' AS DATE) AS end_date
+          	FROM subscriptions AS S
+         	LEFT JOIN plans AS P
+              ON S.plan_id = P.plan_id
+         	WHERE S.plan_id NOT IN (0) -- removing trial
+             	  AND EXTRACT(YEAR FROM start_date) = 2020
+			ORDER BY customer_id, start_date
+            ),
+
+-- Creating monthly payment schedule for subscription who started with plan 1 or 2 (monthly)
+	B AS 	(SELECT *
+            	FROM A,
+            	GENERATE_SERIES(start_date, end_date, INTERVAL '1 month') AS p_date
+            	WHERE  plan_id IN (1,2) --AND customer_id = 193
+            	ORDER BY customer_id, plan_id, p_date
+             	),
+
+-- Creating annual payment schedule for subscription who started with plan 3 (annual)
+	C AS 	(SELECT *
+            	FROM A,
+            	GENERATE_SERIES(start_date, end_date, INTERVAL '1 year') AS p_date
+            	WHERE  plan_id IN (3) --AND customer_id = 193
+            	ORDER BY customer_id, plan_id, p_date
+             	),
+
+-- Combining  Table A and C
+	D AS	(SELECT * FROM B UNION ALL
+             	SELECT * FROM C
+            	) 
+            
+--Final Calculation             
+SELECT customer_id
+	, plan_id
+    	, plan_name
+    	, CAST(p_date AS DATE) AS payment_date
+    	, CASE
+     	  WHEN plan_id = 3 AND previous_plan_id = 1 THEN (price - previous_plan_price)
+      	  ELSE price
+     	  END AS amount
+    	, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY p_date) AS payment_order
+FROM D
+WHERE customer_id IN (1, 2, 13 ,15, 16, 18, 19)
+      AND -- Limiting to customer_id as shown in the desired output
+      p_date < next_plan_start_date -- removing records that overlaps based on case study logic
+;
+```
+|customer_id |plan_id|plan_name    |payment_date|amount|payment_order|
+|------------|-------|-------------|------------|------|-------------|
+|1           |1      |basic monthly|2020-08-08  |9.90  |1            |
+|1           |1      |basic monthly|2020-09-08  |9.90  |2            |
+|1           |1      |basic monthly|2020-10-08  |9.90  |3            |
+|1           |1      |basic monthly|2020-11-08  |9.90  |4            |
+|1           |1      |basic monthly|2020-12-08  |9.90  |5            |
+|2           |3      |pro annual   |2020-09-27  |199.00|1            |
+|13          |1      |basic monthly|2020-12-22  |9.90  |1            |
+|15          |2      |pro monthly  |2020-03-24  |19.90 |1            |
+|15          |2      |pro monthly  |2020-04-24  |19.90 |2            |
+|16          |1      |basic monthly|2020-06-07  |9.90  |1            |
+|16          |1      |basic monthly|2020-07-07  |9.90  |2            |
+|16          |1      |basic monthly|2020-08-07  |9.90  |3            |
+|16          |1      |basic monthly|2020-09-07  |9.90  |4            |
+|16          |1      |basic monthly|2020-10-07  |9.90  |5            |
+|16          |3      |pro annual   |2020-10-21  |189.10|6            |
+|18          |2      |pro monthly  |2020-07-13  |19.90 |1            |
+|18          |2      |pro monthly  |2020-08-13  |19.90 |2            |
+|18          |2      |pro monthly  |2020-09-13  |19.90 |3            |
+|18          |2      |pro monthly  |2020-10-13  |19.90 |4            |
+|18          |2      |pro monthly  |2020-11-13  |19.90 |5            |
+|18          |2      |pro monthly  |2020-12-13  |19.90 |6            |
+|19          |2      |pro monthly  |2020-06-29  |19.90 |1            |
+|19          |2      |pro monthly  |2020-07-29  |19.90 |2            |
+|19          |3      |pro annual   |2020-08-29  |199.00|3            |
+
+
 
 
 
