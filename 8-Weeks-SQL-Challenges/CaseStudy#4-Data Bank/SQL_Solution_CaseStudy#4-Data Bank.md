@@ -200,7 +200,65 @@ WHERE deposits > 1 AND (purchase >= 1 OR withdrawal >= 1)
 
 <br>
 
-B4. 
+B4. What is the closing balance for each customer at the end of the month?
+```sql
+/*
+Assigning negative txt_amount for withdraw and purchase and then performing running total to calculate available balance
+as per the transaction date.
+Then identifying end_of_month flag for each customer
+*/
+
+WITH 	A AS	(SELECT customer_id
+                 	, txn_date
+                 	, txn_type
+                 	, txn_amount
+                	, SUM (CASE 
+                 	  	   WHEN txn_type = 'deposit' THEN txn_amount
+                 	  	   ELSE -(txn_amount)
+                 	  	   END)
+                 	  OVER (PARTITION BY customer_id ORDER BY txn_date) AS available_balance
+                 	, TO_CHAR(txn_date, 'Month') AS month_name
+                    , ROW_NUMBER()
+                 	  OVER (PARTITION BY customer_id
+                                     	, EXTRACT(MONTH FROM txn_date) 
+                            ORDER BY txn_date DESC) AS end_of_month_flag
+                 FROM customer_transactions
+                 )
+        
+SELECT customer_id
+	, month_name AS month
+    , available_balance AS endofmonth_closing_balance
+FROM A
+WHERE end_of_month_flag = 1
+LIMIT 20 -- Limiting to first 20 rows in the output for display purpose
+;
+```
+|customer_id|month   |endofmonth_closing_balance|
+|-----------|--------|--------------------------|
+|1          |January |312                       |
+|1          |March   |-640                      |
+|2          |January |549                       |
+|2          |March   |610                       |
+|3          |January |144                       |
+|3          |February|-821                      |
+|3          |March   |-1222                     |
+|3          |April   |-729                      |
+|4          |January |848                       |
+|4          |March   |655                       |
+|5          |January |954                       |
+|5          |March   |-1923                     |
+|5          |April   |-2413                     |
+|6          |January |733                       |
+|6          |February|-52                       |
+|6          |March   |340                       |
+|7          |January |964                       |
+|7          |February|3173                      |
+|7          |March   |2533                      |
+|7          |April   |2623                      |
+
+<br>
+
+B5. 
 
 
 
