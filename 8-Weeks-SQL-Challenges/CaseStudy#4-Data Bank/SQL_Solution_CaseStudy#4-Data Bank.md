@@ -258,7 +258,80 @@ LIMIT 20 -- Limiting to first 20 rows in the output for display purpose
 
 <br>
 
-B5. 
+B5. What is the percentage of customers who increase their closing balance by more than 5%?
+
+```sql
+/*
+As the question is not clear I am assuming that comparasion is between latest month to previous month closing balance.
+*/
+
+-- Creating a table with negative and positive amount as per the txn type
+-- Then Using ROW_NUMBER function to flag the end of the month transaction for each customer
+-- Using SUM window function to create running total for closing balance after each transaction
+
+WITH 	A AS	(SELECT customer_id
+                 	, txn_date
+                 	, txn_type
+                 	, CAST(txn_amount AS FLOAT) AS txt_amount
+                	, SUM (CASE 
+                 	  	   WHEN txn_type = 'deposit' THEN txn_amount
+                 	  	   ELSE -(txn_amount)
+                 	  	   END)
+                 	  OVER (PARTITION BY customer_id ORDER BY txn_date) AS available_balance
+                 	, TO_CHAR(txn_date, 'Month') AS month_name
+                    , EXTRACT(MONTH FROM txn_date) AS month_number
+                 	, ROW_NUMBER()
+                 	  OVER (PARTITION BY customer_id
+                                     	, EXTRACT(MONTH FROM txn_date) 
+                            ORDER BY txn_date DESC) AS end_of_month_flag
+                 FROM customer_transactions
+                 ),
+
+-- Filtering to only end of month balance and using Row Number to rank latest month to previous months balances
+
+		B AS (SELECT customer_id
+				, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY txn_date DESC) AS month_order
+    			, month_name AS month
+    			, available_balance AS closing_balance
+              FROM A
+              WHERE end_of_month_flag = 1
+              ), 
+
+--Including only latest month and previous month balances
+--Using LEAD window function to bring previous month closing balance to latest month row for calculation purpose
+
+		C AS (SELECT *
+              , LEAD(closing_balance) OVER (PARTITION BY  customer_id ORDER BY month_order) AS previous_month_closing_balance
+
+              FROM B
+              WHERE month_order IN (1,2)
+              ),
+
+
+-- Calculating percent difference based on to latest month closing balance and previous month closing balance
+
+		D As (SELECT *
+				, ROUND((closing_balance - previous_month_closing_balance) 
+            			/ (CASE WHEN previous_month_closing_balance = 0 THEN NULL ELSE previous_month_closing_balance END)::NUMERIC  
+                        * 100, 2) AS percent_difference
+              FROM C
+              )
+              
+--Determing the customers with more than 5% closing balance increase and making calculation
+
+SELECT  ROUND(SUM(CASE WHEN percent_difference > 5 THEN 1 ELSE 0 END)
+		/ COUNT(*)::NUMERIC
+        * 100, 1) AS percent_of_customers
+FROM D
+WHERE month_order = 1
+;
+```
+|percent_of_customers|
+|--------------------|
+|46.4                |
+
+<br>
+
 
 
 
