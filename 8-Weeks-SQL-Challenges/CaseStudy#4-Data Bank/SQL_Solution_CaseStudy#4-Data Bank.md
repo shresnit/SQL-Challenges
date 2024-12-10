@@ -175,6 +175,34 @@ FROM A
 |-----------------------------|------------|
 |5                            |1359168     |
 
+<br>
+
+B3. For each month - how many Data Bank customers make more than 1 deposit and either 1 purchase or 1 withdrawal in a single month?
+```sql
+WITH A AS	(SELECT customer_id
+             	, EXTRACT(MONTH from txn_date) as month
+             	, SUM((CASE WHEN txn_type = 'deposit' THEN 1 ELSE 0 END)) AS deposits
+             	, SUM((CASE WHEN txn_type = 'purchase' THEN 1 ELSE 0 END)) AS purchase
+             	, SUM((CASE WHEN txn_type = 'withdrawal' THEN 1 ELSE 0 END)) AS withdrawal
+			FROM customer_transactions
+            GROUP BY customer_id, month
+            ORDER BY customer_id
+        	)
+        
+SELECT COUNT(DISTINCT customer_id) AS number_of_customers
+FROM A
+WHERE deposits > 1 AND (purchase >= 1 OR withdrawal >= 1)
+;
+```
+|number_of_customers|
+|-------------------|
+|347                |
+
+<br>
+
+B4. 
+
+
 
 
 
