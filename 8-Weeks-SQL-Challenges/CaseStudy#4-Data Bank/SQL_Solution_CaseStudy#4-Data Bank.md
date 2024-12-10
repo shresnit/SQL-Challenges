@@ -29,8 +29,9 @@ The Data Bank team have prepared a data model for this case study as well as a f
 ![image](https://github.com/user-attachments/assets/941c328d-6816-4da5-ba59-c00d4f375d00)
 
 <br>
-<br>
+
 ## A. Customer Nodes Exploration
+
 A1. How many unique nodes are there on the Data Bank system?
 
 ```sql
@@ -99,6 +100,137 @@ WHERE end_date != '9999-12-31'
 <br>
 
 A5. What is the median, 80th and 95th percentile for this same reallocation days metric for each region?
+
+```sql
+WITH A AS	(SELECT region_name
+                , (end_date - start_date)+1 AS average_days
+                , NTILE(100) OVER  (PARTITION BY region_name ORDER BY (end_date - start_date)+1) AS percentile
+            FROM customer_nodes AS N
+            INNER JOIN regions AS R
+                ON R.region_id = N.region_id
+            WHERE end_date != '9999-12-31'
+            ),
+
+	 B AS	(SELECT region_name
+    			, percentile
+				, ROUND(AVG(average_days)) AS value
+            FROM A
+            WHERE percentile IN (50, 80, 95)
+            GROUP BY region_name, percentile
+             )
+
+SELECT region_name
+	, SUM (CASE WHEN percentile = 50 THEN value END) AS Median
+    , SUM (CASE WHEN percentile = 80 THEN value END) AS "80thPercentile"
+    , SUM (CASE WHEN percentile = 95 THEN value END) AS "95thPercentile"
+FROM B
+GROUP BY region_name
+;
+```
+|region_name|median|80thPercentile|95thPercentile|
+|-----------|------|--------------|--------------|
+|Africa     |16    |25            |29            |
+|America    |17    |24            |29            |
+|Asia       |16    |24            |29            |
+|Australia  |17    |25            |29            |
+|Europe     |17    |25            |29            |
+
+<br>
+
+## B. Customer Transactions
+
+B1. What is the unique count and total amount for each transaction type?
+```sql
+SELECT txn_type
+	, COUNT(DISTINCT txn_type) AS unique_count
+    , SUM(txn_amount) AS total_amount
+FROM customer_transactions
+GROUP BY txn_type
+;
+```
+|txn_type |unique_count|total_amount|
+|---------|------------|------------|
+|deposit  |1           |1359168     |
+|purchase |1           |806537      |
+|withdrawal|1          |793003      |
+
+<br>
+
+B2. What is the average total historical deposit counts and amounts for all customers?
+```sql
+WITH A AS	(SELECT customer_id
+				, COUNT(*) AS deposit_counts
+				, SUM(txn_amount) AS amounts
+			FROM customer_transactions
+			WHERE txn_type = 'deposit'
+			GROUP BY customer_id
+        	)
+        
+SELECT ROUND(AVG(deposit_counts)) AS historical_deposit_counts_avg
+	, SUM(amounts) AS total_amount
+FROM A
+;
+```
+|historical_deposit_counts_avg|total_amount|
+|-----------------------------|------------|
+|5                            |1359168     |
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
