@@ -451,9 +451,94 @@ ORDER BY month_date
 Option 2: If Customer A has $100 on an average in previous 30 days then 100 GB of cloud storage will be allocated to the customer for the current day. 
 
 ```sql
+/*
+Approach
+Data scaffolding at day level. Assigning running total balance for each customer at each day from min and max
+date of the dataset. This will allow to figure what was the balance every day before 30 days from start of month
+*/
 
+--Identifying minimum and maximum transaction date in the data and trunc them in days
 
+WITH 	 A AS (SELECT DATE_TRUNC('month', MIN(txn_date))::DATE AS min_date
+				, MAX(txn_date)  AS max_date
+	       FROM customer_transactions
+          ),
+
+--Generating day level rows from the min and max date and assigning them to each customers using cross join
+
+	 B AS (SELECT customer_id
+				, GENERATE_SERIES(min_date, max_date, INTERVAL '1 day')::DATE  AS day_date
+	      FROM A
+	      CROSS JOIN (SELECT DISTINCT customer_id FROM customer_transactions) AS SQ
+	      ORDER BY customer_id, day_date
+	      ),
+
+ -- Calculating closing balance for every customers at day level. This also includes summarizing transaction at day.
+
+	 C AS (SELECT customer_id
+           		 , txn_date
+                 , SUM (CASE 
+                 	  	WHEN txn_type = 'deposit' THEN txn_amount
+                 	  	ELSE -(txn_amount)
+                 	  	END) AS balance
+ 	       FROM customer_transactions
+               GROUP BY customer_id, txn_date
+              ),
+ 
+
+-- Assigning the transactions to  to the newly generate table B. So every customers have a balance for a every day
+-- if there are no trasaction in a particular day then 0 is assigned
+-- As a result we have every day level balance for every customers
+
+	 D AS (SELECT B.customer_id
+               , B.day_date
+           	   , DATE_TRUNC('month', B.day_date)::DATE + INTERVAL '1 month' AS start_of_month 
+           	   , COALESCE(balance, 0) AS balance -- Assigning 0 if null
+              FROM B
+              LEFT JOIN C
+              ON B.customer_id = C.customer_id
+              AND B.day_date = C.txn_date
+              ),
+
+-- Using SUM window function for running total of balance.
+-- As a result we have running total of balance for each customer at day level from start to enddate of the dataset
+	E AS (SELECT customer_id
+			, day_date
+          		, start_of_month::DATE AS start_of_month
+          		, (start_of_month - INTERVAL '30 days' )::DATE AS previous_30_days_date
+			, SUM(balance) OVER (PARTITION BY customer_id ORDER BY day_date) AS closing_balance
+	      FROM D
+ 	      ),
+
+-- Now, lets allocate the data based on following logic
+-- "data is allocated on the average amount of money kept in the account in the previous 30 days"
+-- Let's considers day 1 of month AS current date and look 30 days back 
+
+	F AS (SELECT customer_id
+          		, start_of_month
+			, ROUND(AVG(closing_balance)) AS average_balance_prev_30days
+	      FROM E
+	      WHERE (day_date < start_of_month AND day_date >= previous_30_days_date::DATE)
+	      GROUP BY customer_id, start_of_month
+  	     )
+
+--Allocating data to the customers and summarizing at start of month level
+
+SELECT start_of_month
+	, SUM(CASE
+      	  WHEN average_balance_prev_30days < 0 THEN 0
+      	  ELSE average_balance_prev_30days
+	  END) AS "data_allocation (GB)"
+FROM F
+GROUP BY start_of_month
+;
 ```
+|start_of_month|data_allocation (GB)|
+|--------------|--------------------|
+|2020-04-01    |257336              |
+|2020-03-01    |245923              |
+|2020-05-01    |256593              |
+|2020-02-01    |128447              |
 <br>
 Option 2: If the cloud data storage is updated dynamically in real-time based on the customer’s current account balance 
 
