@@ -35,7 +35,7 @@ members
 **Solution**
 ____________
 Q1. What is the total amount each customer spent at the restaurant?
- 
+ ```sql
     SELECT S.customer_id
     	, SUM(M.price) AS amount_spent
     FROM sales AS S
@@ -44,7 +44,7 @@ Q1. What is the total amount each customer spent at the restaurant?
     GROUP BY customer_id
     ORDER BY customer_id
     ;
-
+```
 | customer_id | amount_spent |
 | ----------- | --- |
 | A           | 76  |
@@ -55,6 +55,7 @@ Q1. What is the total amount each customer spent at the restaurant?
 <br>
 
 Q2. How many days has each customer visited the restaurant?
+```sql
     
     SELECT customer_id 
     	, COUNT(order_date) AS days_visited
@@ -68,7 +69,7 @@ Q2. How many days has each customer visited the restaurant?
     GROUP BY customer_id
     ORDER BY customer_id
     ;
-
+```
 | customer_id | days_visited |
 | ----------- | ------------ |
 | A           | 4            |
@@ -79,9 +80,7 @@ Q2. How many days has each customer visited the restaurant?
 <br>
 
 Q3. What was the first item from the menu purchased by each customer?
-
-
-    
+```sql    
     SELECT customer_id
     	, product_name AS first_item
     FROM (SELECT S.customer_id
@@ -93,7 +92,7 @@ Q3. What was the first item from the menu purchased by each customer?
             ON S.product_id = M.product_id) AS SQ
     WHERE rank = 1
     ;
-
+```
 | customer_id | first_item |
 | ----------- | ---------- |
 | A           | curry      |
@@ -104,7 +103,7 @@ Q3. What was the first item from the menu purchased by each customer?
 <br>
 
 Q4. What is the most purchased item on the menu and how many times was it purchased by all customers?
- 
+ ```sql
         SELECT customer_id
         		, product_name AS most_purchased_item
                 , COUNT(*) AS times_purchased
@@ -123,7 +122,7 @@ Q4. What is the most purchased item on the menu and how many times was it purcha
      	GROUP BY customer_id, product_name
         ORDER BY times_purchased DESC
         ;
-
+```
 | customer_id | most_purchased_item | times_purchased |
 | ----------- | ------------------- | --------------- |
 | A           | ramen               | 3               |
@@ -134,8 +133,7 @@ Q4. What is the most purchased item on the menu and how many times was it purcha
 <br>
 
 Q5. Which item was the most popular for each customer?
-
-
+```sql
     SELECT customer_id
     	, product_name
         , times_purchased
@@ -155,7 +153,7 @@ Q5. Which item was the most popular for each customer?
           ORDER BY customer_id, times_purchased DESC
       		) AS SQ1 ) AS SQ2
     WHERE times_purchased = high_purchase
-
+```
 | customer_id | product_name | times_purchased |
 | ----------- | ------------ | --------------- |
 | A           | ramen        | 3               |
@@ -168,7 +166,7 @@ Q5. Which item was the most popular for each customer?
 <br>
 
 Q6. Which item was purchased first by the customer after they became a member?
-    
+ ```sql   
     SELECT customer_id
     		, product_name
             , first_order_date
@@ -187,7 +185,7 @@ Q6. Which item was purchased first by the customer after they became a member?
           
     WHERE order_date = first_order_date
     ;
-
+```
 | customer_id | product_name | first_order_date |
 | ----------- | ------------ | ---------------- |
 | A           | curry        | 2021-01-07       |
@@ -198,7 +196,7 @@ Q6. Which item was purchased first by the customer after they became a member?
 
 
 Q7. Which item was purchased just before the customer became a member?
-    
+```sql    
     SELECT customer_id
     		, product_name
             , last_order_date
@@ -216,7 +214,7 @@ Q7. Which item was purchased just before the customer became a member?
           ORDER BY S.customer_id, order_date) AS SQ
     WHERE order_date = last_order_date
     ;
-
+```
 | customer_id | product_name | last_order_date |
 | ----------- | ------------ | --------------- |
 | A           | sushi        | 2021-01-01      |
@@ -227,7 +225,7 @@ Q7. Which item was purchased just before the customer became a member?
 <br>
 
 Q8. What is the total items and amount spent for each member before they became a member?
-    
+```sql    
     SELECT customer_id
     	, count(DISTINCT product_name) AS total_items
         , SUM(price) AS amount_spent
@@ -243,7 +241,7 @@ Q8. What is the total items and amount spent for each member before they became 
           WHERE order_date < join_date) AS SQ
      GROUP BY customer_id
     ;
-
+```
 | customer_id | total_items | amount_spent |
 | ----------- | ----------- | ------------ |
 | A           | 2           | 25           |
@@ -253,7 +251,7 @@ Q8. What is the total items and amount spent for each member before they became 
 <br>
 
 Q9. If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?
-    
+```sql    
     SELECT customer_id
     	, SUM((CASE product_name WHEN 'sushi' THEN 2 ELSE 1 END) *  price * 10) AS points
             
@@ -263,7 +261,7 @@ Q9. If each $1 spent equates to 10 points and sushi has a 2x points multiplier -
     GROUP BY customer_id
     ORDER BY customer_id
     ;
-
+```
 | customer_id | points |
 | ----------- | ------ |
 | A           | 860     |
@@ -274,7 +272,7 @@ Q9. If each $1 spent equates to 10 points and sushi has a 2x points multiplier -
 <br>
 
 Q10. In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?
-    
+```sql    
     SELECT S.customer_id
                , SUM(CASE
                   	WHEN order_date < join_date AND product_name = 'sushi' THEN 2
@@ -290,13 +288,12 @@ Q10. In the first week after a customer joins the program (including their join 
               ON S.customer_id = Mem.customer_id
     WHERE order_date <= '2021-01-31'
     GROUP BY S.customer_id
-
+```
 | customer_id | points |
 | ----------- | ------ |
 | A           | 1370   |
 | B           | 820    |
 
----
 
 
 
