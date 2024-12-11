@@ -330,8 +330,137 @@ WHERE month_order = 1
 
 <br>
 
+## C. Data Allocation Challenge
+
+To test out a few different hypotheses - the Data Bank team wants to run an experiment where different groups of customers would be allocated data using 3 different options:
+<br>
+<br>
+Option 1: data is allocated based off the amount of money at the end of the previous month
+<br>
+Option 2: data is allocated on the average amount of money kept in the account in the previous 30 days
+<br>
+Option 3: data is updated real-time
+<br>
+<br>
+For this multi-part challenge question - you have been requested to generate the following data elements to help the Data Bank team estimate how much data will need to be provisioned for each option:
+<br>
+- running customer balance column that includes the impact each transaction
+- customer balance at the end of each month
+- minimum, average and maximum values of the running balance for each customer
+<br>
+Using all of the data available - how much data would have been required for each option on a monthly basis?
+<br>
+<br>
+Option 1: If Customer A has $100 at the end of the previous month then 100 GB of cloud storage will be allocated to the customer for the current month. 
+
+```sql
+
+/*
+Approach
+Since some customers had 1 or 2 transactions over the time period, we need balance amount for
+each month for every customers.
+Here I am using concept of data scaffolding to create these month rows for every customer and
+making the calculation.
+
+*/
+
+--Identifying minimum and maximum transaction date in the data and trunc them in month
+
+WITH A AS (SELECT DATE_TRUNC('month', MIN(txn_date))::DATE AS min_date
+				, DATE_TRUNC('month', MAX(txn_date))::DATE AS max_date
+			FROM customer_transactions
+          ),
+
+--Generating month level rows from the min and max date and assigning them to each customers using cross join
+
+	 B AS (SELECT customer_id
+				, GENERATE_SERIES(min_date, max_date, INTERVAL '1 month')::DATE  AS month_date
+		  FROM A
+		  CROSS JOIN (SELECT DISTINCT customer_id FROM customer_transactions) AS SQ
+		  ORDER BY customer_id, month_date
+          ),
 
 
+-- Calculating closing balance for each month and every customers
+
+	 C AS (SELECT customer_id
+                 , DATE_TRUNC('month', txn_date)::DATE AS month_date
+                 , SUM (CASE 
+                 	  	WHEN txn_type = 'deposit' THEN txn_amount
+                 	  	ELSE -(txn_amount)
+                 	  	END) AS balance
+          FROM customer_transactions
+          GROUP BY customer_id, month_date
+          ),
+          
+
+-- Assigning the balance of a specific month to the newly generate table B.
+-- if there are no transaction in a particular month,  NULL is assigned as we are using left join
+-- As a result we have every month level balance for every customers
+
+	 D AS (SELECT B.customer_id
+				, B.month_date
+    			, balance
+		   FROM B
+		   LEFT JOIN C
+			ON B.customer_id = C.customer_id
+    		AND B.month_date = C.month_date
+           ),
+
+-- Now, using SUM window function for running total of balance.
+-- As a result customer having a NULL in a particular month is assigned balance from previous month
+
+	E AS (SELECT customer_id
+				, month_date 
+    			, balance
+				, SUM(balance) OVER (PARTITION BY customer_id ORDER BY month_date) AS closing_balance
+		 FROM D
+          ),
+
+-- As the data allocation for current month is based on previous month balance, 
+-- we are using LAG window function bring the value to current row from previous row
+-- As nothing is allocated for balace with negative value replacing them with 0
+
+	F AS (SELECT *
+       			, CASE
+          		  WHEN COALESCE(LAG(closing_balance) OVER (PARTITION BY customer_id ORDER BY month_date), 0)
+				< 0 THEN 0
+          		  ELSE COALESCE(LAG(closing_balance) OVER (PARTITION BY customer_id ORDER BY month_date), 0)
+          		  END AS data_allocation       
+		 FROM E
+         )
+
+
+--Finally, summing up all the data allocation numbers of all customers at month level
+
+SELECT month_date
+	, SUM(data_allocation) AS "data_allocation (GB)"
+FROM F
+GROUP BY month_date
+ORDER BY month_date
+;
+```
+|month_date|data_allocation (GB)|
+|----------|--------------------|
+|2020-01-01|0                   |
+|2020-02-01|235595              |
+|2020-03-01|261508              |
+|2020-04-01|260971              |
+
+<br>
+Option 2: If Customer A has $100 on an average in previous 30 days then 100 GB of cloud storage will be allocated to the customer for the current day. 
+
+```sql
+
+
+```
+<br>
+Option 2: If the cloud data storage is updated dynamically in real-time based on the customer’s current account balance 
+
+```sql
+
+
+```
 
 
 
