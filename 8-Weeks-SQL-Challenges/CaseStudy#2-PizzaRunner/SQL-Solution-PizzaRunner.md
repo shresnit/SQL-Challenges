@@ -35,10 +35,11 @@ All datasets exist within the pizza_runner database schema - be sure to include 
 ## A. Pizza  Metrics
 
 #### A1. How many pizzas were ordered?
-
+```sql
     SELECT COUNT(*) AS no_of_pizzas_ordered
     FROM customer_orders
     ;
+```
 |no_of_pizzas_ordered|
 |--------------------|
 |14                  |
@@ -46,10 +47,11 @@ All datasets exist within the pizza_runner database schema - be sure to include 
 <br>
 
 #### A2. How many unique customer orders were made?
-
+```sql
     SELECT COUNT(DISTINCT order_id) AS unique_customer_orders
     FROM customer_orders
     ;
+```
 |unique_customer_orders|
 |----------------------|
 |10                    |
@@ -57,7 +59,7 @@ All datasets exist within the pizza_runner database schema - be sure to include 
 <br>
 
 #### A3. How many successful orders were delivered by each runner?
-
+```sql
     SELECT runner_id
     	, COUNT(*) AS number_of_orders_delivered
     FROM runner_orders
@@ -65,7 +67,7 @@ All datasets exist within the pizza_runner database schema - be sure to include 
     GROUP BY runner_id
     ORDER BY runner_id
     ;
-
+```
 |runner_id|number_of_orders_delivered|
 |---------|--------------------------|
 |1        |4                         |
@@ -75,7 +77,7 @@ All datasets exist within the pizza_runner database schema - be sure to include 
 <br>
 
 #### A3. How many successful orders were delivered by each runner?
-
+```sql
     SELECT runner_id
     	, COUNT(*) AS number_of_orders_delivered
     FROM runner_orders
@@ -83,7 +85,7 @@ All datasets exist within the pizza_runner database schema - be sure to include 
     GROUP BY runner_id
     ORDER BY runner_id
     ;
-
+```
 |runner_id|number_of_orders_delivered|
 |---------|--------------------------|
 |1        |4                         |
@@ -93,7 +95,7 @@ All datasets exist within the pizza_runner database schema - be sure to include 
 <br>
 
 #### A4. How many of each type of pizza was delivered?
-
+```sql
     SELECT A. pizza_id
     	, C.pizza_name
        , COUNT(A. order_id)
@@ -105,7 +107,7 @@ All datasets exist within the pizza_runner database schema - be sure to include 
     WHERE B.pickup_time != 'null'
     GROUP BY A.pizza_id, C.pizza_name
     ;
-
+```
 |pizza_id|pizza_name|count|
 |--------|----------|-----|
 |1       |Meatlovers|9    |
@@ -114,7 +116,7 @@ All datasets exist within the pizza_runner database schema - be sure to include 
 <br>
 
 #### A5. How many Vegetarian and Meatlovers were ordered by each customer?
-
+```sql
     SELECT A.customer_id
     	, C.pizza_name
        	, COUNT(A. order_id) AS no_of_pizzas
@@ -126,7 +128,7 @@ All datasets exist within the pizza_runner database schema - be sure to include 
     GROUP BY A.customer_id, C.pizza_name
     ORDER BY customer_id
     ;
-
+```
 |customer_id|pizza_name|no_of_pizzas|
 |-----------|----------|-----|
 |101        |Meatlovers|2    |
@@ -141,7 +143,7 @@ All datasets exist within the pizza_runner database schema - be sure to include 
 <br>
 
 #### A6. What was the maximum number of pizzas delivered in a single order?
-
+```sql
     SELECT COUNT(A. order_id) AS max_pizzas_delivered_in_single_order
     FROM customer_orders AS A
     INNER JOIN runner_orders AS B
@@ -156,11 +158,11 @@ All datasets exist within the pizza_runner database schema - be sure to include 
 |max_pizzas_delivered_in_single_order|
 |------------------------------------|
 |3                                   |
-
+```
 <br>
 
 #### A7. For each customer, how many delivered pizzas had at least 1 change and how many had no changes?
-
+```sql
     SELECT A.customer_id
     	,CASE
          WHEN COALESCE(A.exclusions, '') IN ('', 'null') AND COALESCE(A.extras, '') IN ('', 'null')	THEN 'No Change'
@@ -176,6 +178,7 @@ All datasets exist within the pizza_runner database schema - be sure to include 
     GROUP BY changes, A.customer_id
     ORDER BY A.customer_id
     ;
+```
 |customer_id|changes          |no_of_deliveredpizzas|
 |-----------|-----------------|---------------------|
 |101        |No Change        |2                    |
@@ -188,7 +191,7 @@ All datasets exist within the pizza_runner database schema - be sure to include 
 <br>
 
 #### A8. How many pizzas were delivered that had both exclusions and extras?
-
+```sql
     SELECT SUM(no_of_deliveredpizzas) AS no_of_deliveredpizzas_both
     FROM (SELECT A.customer_id
             ,CASE
@@ -205,7 +208,7 @@ All datasets exist within the pizza_runner database schema - be sure to include 
           GROUP BY changes, A.customer_id) AS SQ
     WHERE changes = 'Both'
     ;
-
+```
 |no_of_deliveredpizzas_both|
 |--------------------------|
 |1                         |
@@ -214,13 +217,14 @@ All datasets exist within the pizza_runner database schema - be sure to include 
 
 
 #### A9. What was the total volume of pizzas ordered for each hour of the day?
-
+```sql
     SELECT EXTRACT(HOUR FROM order_time) hour_of_the_day
     	, COUNT(*) AS volume_of_pizzas
     FROM customer_orders
     GROUP BY hour_of_the_day
     ORDER BY hour_of_the_day
     ;
+```
 |hour_of_the_day|volume_of_pizzas|
 |---------------|----------------|
 |11             |1               |
@@ -233,13 +237,13 @@ All datasets exist within the pizza_runner database schema - be sure to include 
 <br>
 
 #### A10. What was the volume of orders for each day of the week?
-
+```sql
     SELECT TO_CHAR(order_time, 'DAY') AS day_of_the_week
     	, COUNT(*) AS volume_of_pizzas
     FROM customer_orders
     GROUP BY day_of_the_week
     ;
-
+```
 |day_of_the_week|volume_of_pizzas|
 |---------------|----------------|
 |WEDNESDAY      |5               |
@@ -252,13 +256,14 @@ All datasets exist within the pizza_runner database schema - be sure to include 
 ## B. Runner and Customer Experience
 
 B1. How many runners signed up for each 1 week period? (i.e. week starts 2021-01-01)
-
+```sql
     SELECT FLOOR((registration_date - DATE '2021-01-01') / 7) + 1 AS week
     	, COUNT(runner_id) AS no_of_runners
     FROM runners
     GROUP BY week
     ORDER BY week
     ;
+```
 |week|no_of_runners|
 |----|-------------|
 |1   |2            |
@@ -268,7 +273,7 @@ B1. How many runners signed up for each 1 week period? (i.e. week starts 2021-01
 <br>
 
 B2. What was the average time in minutes it took for each runner to arrive at the Pizza Runner HQ to pickup the order?
-
+```sql
     SELECT runner_id
     	, ROUND(AVG(minutes)) AS average_time_minutes
     FROM (SELECT B.runner_id
@@ -281,7 +286,7 @@ B2. What was the average time in minutes it took for each runner to arrive at th
     GROUP BY runner_id
     ORDER BY runner_id
     ;
-
+```
 |runner_id|average_time_minutes|
 |---------|--------------------|
 |1        |16                  |
@@ -291,7 +296,7 @@ B2. What was the average time in minutes it took for each runner to arrive at th
 <br>
 
 B3. Is there any relationship between the number of pizzas and how long the order takes to prepare?
-
+```sql
     SELECT no_of_pizzas_in_orders
     	, ROUND(AVG(avg_prep_duration)) AS avg_prep_duration
         
@@ -311,7 +316,7 @@ B3. Is there any relationship between the number of pizzas and how long the orde
     GROUP BY no_of_pizzas_in_orders
     ORDER BY avg_prep_duration DESC
     ;
-
+```
 |no_of_pizzas_in_orders|avg_prep_duration|
 |----------------------|-----------------|
 |3                     |29               |
@@ -323,7 +328,7 @@ B3. Is there any relationship between the number of pizzas and how long the orde
 <br>
 
 B4. What was the average distance travelled for each customer?
-
+```sql
     SELECT customer_id
     	, AVG(total_distance) AS avg_distance_travelled_minutes
         
@@ -340,7 +345,7 @@ B4. What was the average distance travelled for each customer?
     GROUP BY customer_id
     ORDER BY customer_id
     ;
-
+```
 |customer_id|avg_distance_travelled_minutes|
 |-----------|----------------------|
 |101        |20                    |
@@ -352,7 +357,7 @@ B4. What was the average distance travelled for each customer?
 <br>
 
 B5. What was the difference between the longest and shortest delivery times for all orders?
-
+```sql
     SELECT MAX(total_duration) - MIN(total_duration) AS difference_longest_shortest_delivery_minutes
     
     FROM  (SELECT  A.order_id 
@@ -363,7 +368,7 @@ B5. What was the difference between the longest and shortest delivery times for 
           WHERE pickup_time != 'null'
           GROUP BY A.order_id, A.customer_id) AS SQ
     ;
-
+```
 |difference_longest_shortest_delivery_minutes|
 |--------------------------------------------|
 |30                                          |
@@ -371,7 +376,7 @@ B5. What was the difference between the longest and shortest delivery times for 
 <br>
 
 B6. What was the average speed for each runner for each delivery and do you notice any trend for these values?SELEC
-
+```sql
     SELECT runner_id
     	, order_id
         , ROUND(AVG(CAST(REGEXP_REPLACE(distance, '[A-Za-z]', '', 'g') AS FLOAT)
@@ -382,7 +387,7 @@ B6. What was the average speed for each runner for each delivery and do you noti
     WHERE pickup_time != 'null'
     GROUP BY runner_id, order_id
     ORDER BY runner_id, order_id
-
+```
 |ner_id|order_id|avg_speed_km_per_hr|
 |------|--------|-------------------|
 |1     |1       |38                 |
@@ -397,7 +402,7 @@ B6. What was the average speed for each runner for each delivery and do you noti
 <br>
 
 B7. What is the successful delivery percentage for each runner?
-
+```sql
     SELECT runner_id
     	, CAST(delivery_flag AS FLOAT) / CAST(total_orders AS FLOAT) * 100 AS successful_delivery_percentage
         
@@ -410,7 +415,7 @@ B7. What is the successful delivery percentage for each runner?
          GROUP BY runner_id
     	 ORDER BY runner_id) AS SQ
     ;
-
+```
 |runner_id|successful_delivery_percentage|
 |---------|------------------------------|
 |1        |100                           |
@@ -422,7 +427,7 @@ B7. What is the successful delivery percentage for each runner?
 ## C. Ingredient Optimisation
 
 C1. What are the standard ingredients for each pizza?
-
+```sql
     SELECT A.pizza_id
     	, pizza_name
     	, topping_id
@@ -436,7 +441,7 @@ C1. What are the standard ingredients for each pizza?
     	ON A.pizza_id = C.pizza_id
     ORDER BY A.pizza_id, topping_id
     ;
-
+```
 |pizza_id|pizza_name|topping_id|topping_name|
 |--------|----------|----------|------------|
 |1       |Meatlovers|1         |Bacon       |
@@ -457,7 +462,7 @@ C1. What are the standard ingredients for each pizza?
 <br>
 
 C2. What was the most commonly added extra?
-
+```sql
     SELECT topping_name AS most_common_extra
     	,COUNT(*) AS COUNT
     FROM (SELECT CAST(UNNEST(STRING_TO_ARRAY(extras, ',')) AS INT) AS extras
@@ -469,7 +474,7 @@ C2. What was the most commonly added extra?
     ORDER BY COUNT DESC
     LIMIT 1
     ;
-
+```
 |most_common_extra|count|
 |-----------------|-----|
 |Bacon            |4    |
@@ -477,7 +482,7 @@ C2. What was the most commonly added extra?
 <br>
 
 C3. What was the most common exclusion?
-
+```sql
     SELECT topping_name AS most_common_exclusion
     	,COUNT(*) AS COUNT
     FROM (SELECT CAST(UNNEST(STRING_TO_ARRAY(exclusions, ',')) AS INT) AS exclusions
@@ -489,7 +494,7 @@ C3. What was the most common exclusion?
     ORDER BY COUNT DESC
     LIMIT 1
     ;
-
+```
 |most_common_exclusion|count|
 |---------------------|-----|
 |Cheese               |4    |
@@ -505,7 +510,7 @@ C4. Generate an order item for each record in the customers_orders table in the 
 <br>
 -- Meat Lovers - Exclude Cheese, Bacon - Extra Mushroom, Pepper
 <br>
-
+```sql
     WITH  A AS (SELECT ROW_NUMBER() OVER() AS id
               , order_id
               , customer_id
@@ -572,7 +577,7 @@ C4. Generate an order item for each record in the customers_orders table in the 
     FROM E
     ORDER BY order_id
     ;
-
+```
 |order_id|customer_id|order_item                                                         |
 |--------|-----------|---------------------------------------------------------------|
 |1       |101        |Meatlovers                                                     |
@@ -596,7 +601,7 @@ C5. Generate an alphabetically ordered comma separated ingredient list for each 
 <br>
 For example: "Meat Lovers: 2xBacon, Beef, ... , Salami"
 
-
+```sql
 	WITH  A AS (SELECT ROW_NUMBER() OVER() AS id
 	              , order_id
 	              , customer_id
@@ -699,7 +704,7 @@ For example: "Meat Lovers: 2xBacon, Beef, ... , Salami"
 	    , customer_id
 	    , pizza_name
     ;
-
+```
 |order_id|customer_id|relevant_ingredients                                                               |
 |--------|-----------|-----------------------------------------------------------------------------------|
 |1       |101        |Meatlovers: BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami  |
@@ -721,7 +726,7 @@ For example: "Meat Lovers: 2xBacon, Beef, ... , Salami"
 <br>
 
 C6. What is the total quantity of each ingredient used in all delivered pizzas sorted by most frequent first?
-
+```sql
 	WITH  A AS (SELECT ROW_NUMBER() OVER() AS id
 	              , order_id
 	              , customer_id
@@ -814,7 +819,7 @@ C6. What is the total quantity of each ingredient used in all delivered pizzas s
 	GROUP BY topping_name
 	ORDER BY total_quantity DESC
     ;
-      
+```      
 |topping_name|total_quantity|
 |------------|--------------|
 |Bacon       |11            |
@@ -835,13 +840,14 @@ C6. What is the total quantity of each ingredient used in all delivered pizzas s
 ## D. Pricing and Ratings
 
 D1. If a Meat Lovers pizza costs $12 and Vegetarian costs $10 and there were no charges for changes - how much money has Pizza Runner made so far if there are no delivery fees?
-
+```sql
 	SELECT CONCAT('$', CAST(SUM(CASE WHEN pizza_id = 1 THEN 12 ELSE 10 END) AS TEXT)) AS total_revenue
 	FROM customer_orders AS A
 	LEFT JOIN runner_orders AS B
 		ON A.order_id = B.order_id
 	WHERE B.pickup_time != 'null'
 	;
+```
 |total_revenue|
 |-------------|
 |$138         |
@@ -851,7 +857,7 @@ D1. If a Meat Lovers pizza costs $12 and Vegetarian costs $10 and there were no 
 D2. What if there was an additional $1 charge for any pizza extras?
 <br>
 Add cheese is $1 extra
-
+```sql
 	WITH base AS	(SELECT A.order_id
 	            		, SUM(CASE WHEN pizza_id = 1 THEN 12 ELSE 10 END) base_price
 	                FROM customer_orders AS A
@@ -881,7 +887,7 @@ Add cheese is $1 extra
 	LEFT JOIN extra
 		ON base.order_id = extra.order_id
 	;
-
+```
 |total_revenue_with_extra|
 |------------------------|
 |$142                    |
@@ -891,7 +897,7 @@ Add cheese is $1 extra
 <br>
 
 D3. The Pizza Runner team now wants to add an additional ratings system that allows customers to rate their runner, how would you design an additional table for this new dataset - generate a schema for this new table and insert your own data for ratings for each successful customer order between 1 to 5.
-
+```sql
 	DROP TABLE IF EXISTS ratings;
 	CREATE TABLE ratings (
 	  "order_id" INTEGER,
@@ -911,7 +917,7 @@ D3. The Pizza Runner team now wants to add an additional ratings system that all
 	  (9, NULL),
 	  (10, '4')
 	  ;
-
+```
 Note: Table Created
 |order_id|rating|
 |--------|------|
@@ -949,7 +955,7 @@ Delivery duration
 Average speed
 <br>
 Total number of pizzas
-
+```sql
 	WITH X AS   (SELECT A.order_id
 	                , customer_id
 	             	, MAX(order_time) AS order_time
@@ -984,7 +990,7 @@ Total number of pizzas
 		ON X.order_id = runner_orders.order_id
 	WHERE pickup_time != 'null'
 	;
-
+```
 |customer_id|order_id|runner_id|rating|order_time         |pickup_time        |time_btw_order_pickup_minutes|duration_minutes|avg_speed_km_per_hr|total_number_of_pizzas|
 |-----------|--------|---------|------|-------------------|-------------------|-----------------------------|----------------|-------------------|----------------------|
 |101        |1       |1        |4     |2020-01-01 18:05:02|2020-01-01 18:15:34|11                           |32              |38                 |1                     |
@@ -999,7 +1005,7 @@ Total number of pizzas
 <br>
 
 D5. If a Meat Lovers pizza was $12 and Vegetarian $10 fixed prices with no cost for extras and each runner is paid $0.30 per kilometre traveled - how much money does Pizza Runner have left over after these deliveries?
-
+```sql
 	WITH X AS   (SELECT A.order_id
 	                , customer_id
 	             	, MAX(order_time) AS order_time
@@ -1023,7 +1029,7 @@ D5. If a Meat Lovers pizza was $12 and Vegetarian $10 fixed prices with no cost 
 	FROM X
 	LEFT JOIN runner_orders
 		ON X.order_id = runner_orders.order_id
-
+```
 |amount_leftover|
 |---------------|
 |$94            |
