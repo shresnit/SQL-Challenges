@@ -1,4 +1,5 @@
-# Case Study #2 - Pizza Runner
+![2 (Custom)](https://github.com/user-attachments/assets/72dd5cda-6170-4ab8-86ed-80c3214b5e31) 
+# Case Study #2 - Pizza Runner 
 Challenge Source: https://8weeksqlchallenge.com/case-study-2/
 <br>
 
@@ -255,7 +256,7 @@ All datasets exist within the pizza_runner database schema - be sure to include 
 
 ## B. Runner and Customer Experience
 
-B1. How many runners signed up for each 1 week period? (i.e. week starts 2021-01-01)
+#### B1. How many runners signed up for each 1 week period? (i.e. week starts 2021-01-01)
 ```sql
     SELECT FLOOR((registration_date - DATE '2021-01-01') / 7) + 1 AS week
     	, COUNT(runner_id) AS no_of_runners
@@ -272,7 +273,7 @@ B1. How many runners signed up for each 1 week period? (i.e. week starts 2021-01
 
 <br>
 
-B2. What was the average time in minutes it took for each runner to arrive at the Pizza Runner HQ to pickup the order?
+#### B2. What was the average time in minutes it took for each runner to arrive at the Pizza Runner HQ to pickup the order?
 ```sql
     SELECT runner_id
     	, ROUND(AVG(minutes)) AS average_time_minutes
@@ -295,7 +296,7 @@ B2. What was the average time in minutes it took for each runner to arrive at th
 
 <br>
 
-B3. Is there any relationship between the number of pizzas and how long the order takes to prepare?
+#### B3. Is there any relationship between the number of pizzas and how long the order takes to prepare?
 ```sql
     SELECT no_of_pizzas_in_orders
     	, ROUND(AVG(avg_prep_duration)) AS avg_prep_duration
@@ -327,7 +328,7 @@ B3. Is there any relationship between the number of pizzas and how long the orde
 
 <br>
 
-B4. What was the average distance travelled for each customer?
+#### B4. What was the average distance travelled for each customer?
 ```sql
     SELECT customer_id
     	, AVG(total_distance) AS avg_distance_travelled_minutes
@@ -356,7 +357,7 @@ B4. What was the average distance travelled for each customer?
 
 <br>
 
-B5. What was the difference between the longest and shortest delivery times for all orders?
+#### B5. What was the difference between the longest and shortest delivery times for all orders?
 ```sql
     SELECT MAX(total_duration) - MIN(total_duration) AS difference_longest_shortest_delivery_minutes
     
@@ -375,7 +376,7 @@ B5. What was the difference between the longest and shortest delivery times for 
 
 <br>
 
-B6. What was the average speed for each runner for each delivery and do you notice any trend for these values?SELEC
+#### B6. What was the average speed for each runner for each delivery and do you notice any trend for these values?SELEC
 ```sql
     SELECT runner_id
     	, order_id
@@ -401,7 +402,7 @@ B6. What was the average speed for each runner for each delivery and do you noti
 
 <br>
 
-B7. What is the successful delivery percentage for each runner?
+#### B7. What is the successful delivery percentage for each runner?
 ```sql
     SELECT runner_id
     	, CAST(delivery_flag AS FLOAT) / CAST(total_orders AS FLOAT) * 100 AS successful_delivery_percentage
@@ -426,7 +427,7 @@ B7. What is the successful delivery percentage for each runner?
 
 ## C. Ingredient Optimisation
 
-C1. What are the standard ingredients for each pizza?
+#### C1. What are the standard ingredients for each pizza?
 ```sql
     SELECT A.pizza_id
     	, pizza_name
@@ -461,7 +462,7 @@ C1. What are the standard ingredients for each pizza?
 
 <br>
 
-C2. What was the most commonly added extra?
+#### C2. What was the most commonly added extra?
 ```sql
     SELECT topping_name AS most_common_extra
     	,COUNT(*) AS COUNT
@@ -481,7 +482,7 @@ C2. What was the most commonly added extra?
 
 <br>
 
-C3. What was the most common exclusion?
+#### C3. What was the most common exclusion?
 ```sql
     SELECT topping_name AS most_common_exclusion
     	,COUNT(*) AS COUNT
@@ -500,7 +501,7 @@ C3. What was the most common exclusion?
 |Cheese               |4    |
 
 
-C4. Generate an order item for each record in the customers_orders table in the format of one of the following:
+#### C4. Generate an order item for each record in the customers_orders table in the format of one of the following:
 <br>
 -- Meat Lovers
 <br>
@@ -510,6 +511,7 @@ C4. Generate an order item for each record in the customers_orders table in the 
 <br>
 -- Meat Lovers - Exclude Cheese, Bacon - Extra Mushroom, Pepper
 <br>
+
 ```sql
     WITH  A AS (SELECT ROW_NUMBER() OVER() AS id
               , order_id
@@ -597,7 +599,7 @@ C4. Generate an order item for each record in the customers_orders table in the 
 
 <br>
 
-C5. Generate an alphabetically ordered comma separated ingredient list for each pizza order from the customer_orders table and add a 2x in front of any relevant ingredients.
+#### C5. Generate an alphabetically ordered comma separated ingredient list for each pizza order from the customer_orders table and add a 2x in front of any relevant ingredients.
 <br>
 For example: "Meat Lovers: 2xBacon, Beef, ... , Salami"
 
@@ -725,7 +727,7 @@ For example: "Meat Lovers: 2xBacon, Beef, ... , Salami"
 
 <br>
 
-C6. What is the total quantity of each ingredient used in all delivered pizzas sorted by most frequent first?
+#### C6. What is the total quantity of each ingredient used in all delivered pizzas sorted by most frequent first?
 ```sql
 	WITH  A AS (SELECT ROW_NUMBER() OVER() AS id
 	              , order_id
@@ -839,7 +841,7 @@ C6. What is the total quantity of each ingredient used in all delivered pizzas s
 
 ## D. Pricing and Ratings
 
-D1. If a Meat Lovers pizza costs $12 and Vegetarian costs $10 and there were no charges for changes - how much money has Pizza Runner made so far if there are no delivery fees?
+#### D1. If a Meat Lovers pizza costs $12 and Vegetarian costs $10 and there were no charges for changes - how much money has Pizza Runner made so far if there are no delivery fees?
 ```sql
 	SELECT CONCAT('$', CAST(SUM(CASE WHEN pizza_id = 1 THEN 12 ELSE 10 END) AS TEXT)) AS total_revenue
 	FROM customer_orders AS A
@@ -854,9 +856,10 @@ D1. If a Meat Lovers pizza costs $12 and Vegetarian costs $10 and there were no 
 
 <br>
 
-D2. What if there was an additional $1 charge for any pizza extras?
+#### D2. What if there was an additional $1 charge for any pizza extras?
 <br>
 Add cheese is $1 extra
+
 ```sql
 	WITH base AS	(SELECT A.order_id
 	            		, SUM(CASE WHEN pizza_id = 1 THEN 12 ELSE 10 END) base_price
@@ -896,7 +899,7 @@ Add cheese is $1 extra
 
 <br>
 
-D3. The Pizza Runner team now wants to add an additional ratings system that allows customers to rate their runner, how would you design an additional table for this new dataset - generate a schema for this new table and insert your own data for ratings for each successful customer order between 1 to 5.
+#### D3. The Pizza Runner team now wants to add an additional ratings system that allows customers to rate their runner, how would you design an additional table for this new dataset - generate a schema for this new table and insert your own data for ratings for each successful customer order between 1 to 5.
 ```sql
 	DROP TABLE IF EXISTS ratings;
 	CREATE TABLE ratings (
@@ -934,7 +937,7 @@ Note: Table Created
 
 <br>
 
-D4. Using your newly generated table - can you join all of the information together to form a table which has the following information for successful deliveries?
+#### D4. Using your newly generated table - can you join all of the information together to form a table which has the following information for successful deliveries?
 <br>
 customer_id
 <br>
@@ -955,6 +958,7 @@ Delivery duration
 Average speed
 <br>
 Total number of pizzas
+
 ```sql
 	WITH X AS   (SELECT A.order_id
 	                , customer_id
@@ -1004,7 +1008,7 @@ Total number of pizzas
 
 <br>
 
-D5. If a Meat Lovers pizza was $12 and Vegetarian $10 fixed prices with no cost for extras and each runner is paid $0.30 per kilometre traveled - how much money does Pizza Runner have left over after these deliveries?
+#### D5. If a Meat Lovers pizza was $12 and Vegetarian $10 fixed prices with no cost for extras and each runner is paid $0.30 per kilometre traveled - how much money does Pizza Runner have left over after these deliveries?
 ```sql
 	WITH X AS   (SELECT A.order_id
 	                , customer_id
