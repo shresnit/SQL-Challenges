@@ -1,5 +1,6 @@
-![2 (Custom)](https://github.com/user-attachments/assets/72dd5cda-6170-4ab8-86ed-80c3214b5e31) 
 # Case Study #2 - Pizza Runner 
+![2 (Custom)](https://github.com/user-attachments/assets/72dd5cda-6170-4ab8-86ed-80c3214b5e31) 
+<br>
 Challenge Source: https://8weeksqlchallenge.com/case-study-2/
 <br>
 
