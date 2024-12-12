@@ -1,4 +1,6 @@
 # Case Study #4 - Data Bank
+![4 (Custom)](https://github.com/user-attachments/assets/72c327cf-6485-4ab1-aa37-9710759fc0b0)
+<br>
 Challenge Source: https://8weeksqlchallenge.com/case-study-4/
 <br>
 
