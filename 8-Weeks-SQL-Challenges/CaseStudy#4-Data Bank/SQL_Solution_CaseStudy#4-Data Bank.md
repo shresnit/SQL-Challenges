@@ -34,7 +34,7 @@ The Data Bank team have prepared a data model for this case study as well as a f
 
 ## A. Customer Nodes Exploration
 
-A1. How many unique nodes are there on the Data Bank system?
+#### A1. How many unique nodes are there on the Data Bank system?
 
 ```sql
 SELECT COUNT (DISTINCT node_id) AS no_unique_nodes
@@ -46,7 +46,7 @@ FROM customer_nodes
 
 <br>
 
-A2.  What is the number of nodes per region?
+#### A2.  What is the number of nodes per region?
 
 ```sql
 SELECT region_name
@@ -67,7 +67,7 @@ GROUP BY region_name
 
 <br>
 
-A3. How many customers are allocated to each region?
+#### A3. How many customers are allocated to each region?
 ```sql
 SELECT region_name
 	, COUNT(DISTINCT customer_id) AS number_of_customers
@@ -87,7 +87,7 @@ GROUP BY region_name
 
 <br>
 
-A4. How many days on average are customers reallocated to a different node?
+#### A4. How many days on average are customers reallocated to a different node?
 
 ```sql
 SELECT  ROUND(AVG((end_date - start_date)+1)) AS average_days
@@ -101,7 +101,7 @@ WHERE end_date != '9999-12-31'
 
 <br>
 
-A5. What is the median, 80th and 95th percentile for this same reallocation days metric for each region?
+#### A5. What is the median, 80th and 95th percentile for this same reallocation days metric for each region?
 
 ```sql
 WITH A AS	(SELECT region_name
@@ -141,7 +141,7 @@ GROUP BY region_name
 
 ## B. Customer Transactions
 
-B1. What is the unique count and total amount for each transaction type?
+#### B1. What is the unique count and total amount for each transaction type?
 ```sql
 SELECT txn_type
 	, COUNT(DISTINCT txn_type) AS unique_count
@@ -158,7 +158,7 @@ GROUP BY txn_type
 
 <br>
 
-B2. What is the average total historical deposit counts and amounts for all customers?
+#### B2. What is the average total historical deposit counts and amounts for all customers?
 ```sql
 WITH A AS	(SELECT customer_id
 				, COUNT(*) AS deposit_counts
@@ -179,7 +179,7 @@ FROM A
 
 <br>
 
-B3. For each month - how many Data Bank customers make more than 1 deposit and either 1 purchase or 1 withdrawal in a single month?
+#### B3. For each month - how many Data Bank customers make more than 1 deposit and either 1 purchase or 1 withdrawal in a single month?
 ```sql
 WITH A AS	(SELECT customer_id
              	, EXTRACT(MONTH from txn_date) as month
@@ -202,7 +202,7 @@ WHERE deposits > 1 AND (purchase >= 1 OR withdrawal >= 1)
 
 <br>
 
-B4. What is the closing balance for each customer at the end of the month?
+#### B4. What is the closing balance for each customer at the end of the month?
 ```sql
 /*
 Assigning negative txt_amount for withdraw and purchase and then performing running total to calculate available balance
@@ -260,7 +260,7 @@ LIMIT 20 -- Limiting to first 20 rows in the output for display purpose
 
 <br>
 
-B5. What is the percentage of customers who increase their closing balance by more than 5%?
+#### B5. What is the percentage of customers who increase their closing balance by more than 5%?
 
 ```sql
 /*
@@ -353,7 +353,7 @@ For this multi-part challenge question - you have been requested to generate the
 Using all of the data available - how much data would have been required for each option on a monthly basis?
 <br>
 <br>
-Option 1: If Customer A has $100 at the end of the previous month then 100 GB of cloud storage will be allocated to the customer for the current month. 
+#### Option 1: If Customer A has $100 at the end of the previous month then 100 GB of cloud storage will be allocated to the customer for the current month. 
 
 ```sql
 
@@ -450,7 +450,7 @@ ORDER BY month_date
 |2020-04-01|260971              |
 
 <br>
-Option 2: If Customer A has $100 on an average in previous 30 days then 100 GB of cloud storage will be allocated to the customer for the current day. 
+#### Option 2: If Customer A has $100 on an average in previous 30 days then 100 GB of cloud storage will be allocated to the customer for the current day. 
 
 ```sql
 /*
@@ -542,7 +542,7 @@ GROUP BY start_of_month
 |2020-05-01    |256593              |
 |2020-02-01    |128447              |
 <br>
-Option 2: If the cloud data storage is updated dynamically in real-time based on the customer’s current account balance 
+#### Option 3: If the cloud data storage is updated dynamically in real-time based on the customer’s current account balance 
 
 ```sql
 
