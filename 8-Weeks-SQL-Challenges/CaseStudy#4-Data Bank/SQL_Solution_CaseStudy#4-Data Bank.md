@@ -31,6 +31,9 @@ The Data Bank team have prepared a data model for this case study as well as a f
 ![image](https://github.com/user-attachments/assets/941c328d-6816-4da5-ba59-c00d4f375d00)
 
 <br>
+Test the Queries here:
+https://www.db-fiddle.com/f/2GtQz4wZtuNNu7zXH5HtV4/3
+<br>
 
 ## A. Customer Nodes Exploration
 
@@ -353,6 +356,7 @@ For this multi-part challenge question - you have been requested to generate the
 Using all of the data available - how much data would have been required for each option on a monthly basis?
 <br>
 <br>
+
 #### Option 1: If Customer A has $100 at the end of the previous month then 100 GB of cloud storage will be allocated to the customer for the current month. 
 
 ```sql
@@ -450,6 +454,7 @@ ORDER BY month_date
 |2020-04-01|260971              |
 
 <br>
+
 #### Option 2: If Customer A has $100 on an average in previous 30 days then 100 GB of cloud storage will be allocated to the customer for the current day. 
 
 ```sql
@@ -542,6 +547,7 @@ GROUP BY start_of_month
 |2020-05-01    |256593              |
 |2020-02-01    |128447              |
 <br>
+
 #### Option 3: If the cloud data storage is updated dynamically in real-time based on the customer’s current account balance 
 
 ```sql
