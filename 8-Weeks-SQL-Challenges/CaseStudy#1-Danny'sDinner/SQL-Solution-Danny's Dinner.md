@@ -1,18 +1,17 @@
-****Case Study #1: Danny's Dinner****
-_________________________________
+# Case Study #1: Danny's Dinner
+![1 (Custom)](https://github.com/user-attachments/assets/d3dbe879-71af-42f9-a206-175bb6283aa5)
+<br>
 Challenge Source: https://8weeksqlchallenge.com/case-study-1/
 <br>
 
-**Introduction**
-<br>
+### Introduction
 Danny seriously loves Japanese food so in the beginning of 2021, he decides to embark upon a risky venture and opens up a cute little restaurant that sells his 3 favourite foods: sushi, curry and ramen.
 <br>
 
 Danny’s Diner is in need of your assistance to help the restaurant stay afloat - the restaurant has captured some very basic data from their few months of operation but have no idea how to use their data to help them run the business.
 <br>
 
-**Problem Statement**
-<br>
+### Problem Statement
 Danny wants to use the data to answer a few simple questions about his customers, especially about their visiting patterns, how much money they’ve spent and also which menu items are their favourite. Having this deeper connection with his customers will help him deliver a better and more personalised experience for his loyal customers.
 <br>
 He plans on using these insights to help him decide whether he should expand the existing customer loyalty program - additionally he needs help to generate some basic datasets so his team can easily inspect the data without needing to use SQL.
@@ -32,9 +31,8 @@ menu
 members
 <br>
 <br>
-**Solution**
-____________
-Q1. What is the total amount each customer spent at the restaurant?
+## Solution
+#### Q1. What is the total amount each customer spent at the restaurant?
  ```sql
     SELECT S.customer_id
     	, SUM(M.price) AS amount_spent
@@ -51,10 +49,9 @@ Q1. What is the total amount each customer spent at the restaurant?
 | B           | 74  |
 | C           | 36  |
 
-<br>
-<br>
+<br> 
 
-Q2. How many days has each customer visited the restaurant?
+#### Q2. How many days has each customer visited the restaurant?
 ```sql
     
     SELECT customer_id 
@@ -77,9 +74,8 @@ Q2. How many days has each customer visited the restaurant?
 | C           | 2            |
 
 <br>
-<br>
 
-Q3. What was the first item from the menu purchased by each customer?
+#### Q3. What was the first item from the menu purchased by each customer?
 ```sql    
     SELECT customer_id
     	, product_name AS first_item
@@ -100,9 +96,8 @@ Q3. What was the first item from the menu purchased by each customer?
 | C           | ramen      |
 
 <br>
-<br>
 
-Q4. What is the most purchased item on the menu and how many times was it purchased by all customers?
+#### Q4. What is the most purchased item on the menu and how many times was it purchased by all customers?
  ```sql
         SELECT customer_id
         		, product_name AS most_purchased_item
@@ -130,9 +125,8 @@ Q4. What is the most purchased item on the menu and how many times was it purcha
 | B           | ramen               | 2               |
 
 <br>
-<br>
 
-Q5. Which item was the most popular for each customer?
+#### Q5. Which item was the most popular for each customer?
 ```sql
     SELECT customer_id
     	, product_name
@@ -163,9 +157,8 @@ Q5. Which item was the most popular for each customer?
 | C           | ramen        | 3               |
 
 <br>
-<br>
 
-Q6. Which item was purchased first by the customer after they became a member?
+#### Q6. Which item was purchased first by the customer after they became a member?
  ```sql   
     SELECT customer_id
     		, product_name
@@ -192,10 +185,9 @@ Q6. Which item was purchased first by the customer after they became a member?
 | B           | sushi        | 2021-01-11       |
 
 <br>
-<br>
 
 
-Q7. Which item was purchased just before the customer became a member?
+#### Q7. Which item was purchased just before the customer became a member?
 ```sql    
     SELECT customer_id
     		, product_name
@@ -222,9 +214,8 @@ Q7. Which item was purchased just before the customer became a member?
 | B           | sushi        | 2021-01-04      |
 
 <br>
-<br>
 
-Q8. What is the total items and amount spent for each member before they became a member?
+#### Q8. What is the total items and amount spent for each member before they became a member?
 ```sql    
     SELECT customer_id
     	, count(DISTINCT product_name) AS total_items
@@ -248,9 +239,8 @@ Q8. What is the total items and amount spent for each member before they became 
 | B           | 2           | 40           |
 
 <br>
-<br>
 
-Q9. If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?
+#### Q9. If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?
 ```sql    
     SELECT customer_id
     	, SUM((CASE product_name WHEN 'sushi' THEN 2 ELSE 1 END) *  price * 10) AS points
@@ -269,9 +259,8 @@ Q9. If each $1 spent equates to 10 points and sushi has a 2x points multiplier -
 | C           | 360     |
 
 <br>
-<br>
 
-Q10. In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?
+#### Q10. In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?
 ```sql    
     SELECT S.customer_id
                , SUM(CASE
