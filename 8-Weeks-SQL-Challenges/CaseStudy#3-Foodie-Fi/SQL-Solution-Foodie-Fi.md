@@ -1,4 +1,6 @@
 # Case Study #3 - Foodie-Fi
+![3 (Custom)](https://github.com/user-attachments/assets/846a53b8-f102-44e4-8147-23036294714e)
+<br>
 Challenge Source: https://8weeksqlchallenge.com/case-study-3/
 <br>
 
@@ -74,7 +76,7 @@ Try to keep it as short as possible - you may also want to run some sort of join
 
 ## B. Data Analysis Questions
 
-B1. How many customers has Foodie-Fi ever had?
+#### B1. How many customers has Foodie-Fi ever had?
 
 ```sql
     SELECT COUNT(DISTINCT customer_id) AS customers_ever_had
@@ -87,7 +89,7 @@ B1. How many customers has Foodie-Fi ever had?
 
 <br>
 
-B2. What is the monthly distribution of trial plan start_date values for our dataset - use the start of the month as the group by value
+#### B2. What is the monthly distribution of trial plan start_date values for our dataset - use the start of the month as the group by value
 
 ```sql
 WITH A AS (SELECT customer_id
@@ -125,7 +127,7 @@ ORDER BY month_no
 
 <br>
 
-B3. What plan start_date values occur after the year 2020 for our dataset? Show the breakdown by count of events for each plan_name?
+#### B3. What plan start_date values occur after the year 2020 for our dataset? Show the breakdown by count of events for each plan_name?
 ```sql
     WITH A AS (SELECT customer_id
                   , plan_name
@@ -150,7 +152,7 @@ B3. What plan start_date values occur after the year 2020 for our dataset? Show 
 
 <br>
 
-B4. What is the customer count and percentage of customers who have churned rounded to 1 decimal place?
+#### B4. What is the customer count and percentage of customers who have churned rounded to 1 decimal place?
 
 ```sql
 WITH A AS (SELECT customer_id
@@ -172,7 +174,7 @@ FROM A
 
 <br>
 
-B5. How many customers have churned straight after their initial free trial - what percentage is this rounded to the nearest whole number?
+#### B5. How many customers have churned straight after their initial free trial - what percentage is this rounded to the nearest whole number?
 
 ```sql
 WITH A AS (SELECT ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY customer_id, start_date) AS row_no
@@ -205,7 +207,7 @@ FROM B
 
 <br>
 
-B6. What is the number and percentage of customer plans after their initial free trial?
+#### B6. What is the number and percentage of customer plans after their initial free trial?
 
 ```sql
 WITH A AS (SELECT ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY customer_id, start_date) AS row_no
@@ -239,7 +241,7 @@ FROM B
 
 <br>
 
-B7. What is the customer count and percentage breakdown of all 5 plan_name values at 2020-12-31?
+#### B7. What is the customer count and percentage breakdown of all 5 plan_name values at 2020-12-31?
 
 ```sql
 /*
@@ -327,7 +329,7 @@ ORDER BY percentage DESC
 
 <br>
 
-B8. How many customers have upgraded to an annual plan in 2020?
+#### B8. How many customers have upgraded to an annual plan in 2020?
 
 ```sql
 /*
@@ -357,7 +359,7 @@ WHERE annual_plan_upgrade_flag = 1
 
 <br>
 
-B9. How many days on average does it take for a customer to an annual plan from the day they join Foodie-Fi?
+#### B9. How many days on average does it take for a customer to an annual plan from the day they join Foodie-Fi?
 
 ```sql
 /*
@@ -398,7 +400,7 @@ WHERE plan_id = 0 --Limiting to each customer record where calculation was perfo
 
 <br> 
 
-B.10 Can you further breakdown this average value into 30 day periods (i.e. 0-30 days, 31-60 days etc)
+#### B10. Can you further breakdown this average value into 30 day periods (i.e. 0-30 days, 31-60 days etc)
 ```sql
 WITH A AS	(SELECT customer_id
              	, S.plan_id
@@ -461,7 +463,7 @@ GROUP BY period
 
 <br>
 
-B11. How many customers downgraded from a pro monthly to a basic monthly plan in 2020?
+#### B11. How many customers downgraded from a pro monthly to a basic monthly plan in 2020?
 
 ```sql
 /*
