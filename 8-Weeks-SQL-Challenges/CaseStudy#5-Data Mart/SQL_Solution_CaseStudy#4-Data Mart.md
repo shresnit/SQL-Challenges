@@ -612,14 +612,259 @@ FROM B
 
 ## 4. Bonus Questions
 
+Which areas of the business have the highest negative impact in sales metrics performance in 2020 for the 12 week before and after period?
 
+- region
+- platform
+- age_band
+- demographic
+- customer_type
 
+#### Region
+```sql
+WITH A AS (SELECT region
+		, week_number
+		, CASE 
+		  WHEN week_number < 25 THEN '12 Weeks Before'
+		  ELSE '12 Weeks After'
+		  END AS Threshold
+                , sum(sales) AS total_sales
+                , sum(transactions) AS total_transaction
+            FROM data_mart.clean_weekly_sales
+            WHERE week_number >= (25 - 12) AND (week_number <= (25 + 11))
+            GROUP BY week_date, week_number, region
+            ORDER BY week_date
+            ),
+            
+    B AS (SELECT region
+		, SUM(CASE
+		  WHEN threshold = '12 Weeks Before' THEN total_sales
+		  ELSE 0 
+		  END) AS "_12_weeks_before_sales"
+               	, SUM(CASE
+                  WHEN threshold = '12 Weeks After' THEN total_sales
+                  ELSE 0 
+                  END) AS "_12_weeks_after_sales"
+	   FROM A
+           GROUP BY region
+           )
 
+SELECT region
+    , _12_weeks_after_sales - _12_weeks_before_sales AS growth_reduction_value
+    , ROUND((_12_weeks_after_sales - _12_weeks_before_sales)/_12_weeks_before_sales * 100, 2) AS growth_reduction_percent
+FROM B
+ORDER BY growth_reduction_percent
+;
+```
+|region|growth_reduction_value|growth_reduction_percent|
+|------|----------------------|------------------------|
+|ASIA  |-61315418             |-1.33                   |
+|OCEANIA|-58341540             |-0.87                   |
+|CANADA|-10637499             |-0.85                   |
+|USA   |-7257385              |-0.37                   |
+|SOUTH AMERICA|-2075531              |-0.34                   |
+|AFRICA|54539249              |1.10                    |
+|EUROPE|16278629              |4.96                    |
 
+<br>
 
+Asia has the highest negative impact with 1.33% reduction in sales. On the other hand Europe sales increased by 4.96%.
 
+<br>
 
+#### Platform
+```sql
+WITH A AS (SELECT platform
+		, week_number
+		, CASE 
+		  WHEN week_number < 25 THEN '12 Weeks Before'
+		  ELSE '12 Weeks After'
+		  END AS Threshold
+                , sum(sales) AS total_sales
+                , sum(transactions) AS total_transaction
+            FROM data_mart.clean_weekly_sales
+            WHERE week_number >= (25 - 12) AND (week_number <= (25 + 11))
+            GROUP BY week_date, week_number, platform
+            ORDER BY week_date
+            ),
+            
+    B AS (SELECT platform
+		, SUM(CASE
+		  WHEN threshold = '12 Weeks Before' THEN total_sales
+		  ELSE 0 
+		  END) AS "_12_weeks_before_sales"
+               	, SUM(CASE
+                  WHEN threshold = '12 Weeks After' THEN total_sales
+                  ELSE 0 
+                  END) AS "_12_weeks_after_sales"
+	   FROM A
+           GROUP BY platform
+           )
 
+SELECT platform
+    , _12_weeks_after_sales - _12_weeks_before_sales AS growth_reduction_value
+    , ROUND((_12_weeks_after_sales - _12_weeks_before_sales)/_12_weeks_before_sales * 100, 2) AS growth_reduction_percent
+FROM B
+ORDER BY growth_reduction_percent
+;
+```
+
+|platform|growth_reduction_value|growth_reduction_percent|
+|--------|----------------------|------------------------|
+|Retail  |-117464107            |-0.59                   |
+|Shopify |48654612              |9.35                    |
+
+<br>
+
+Retail sales decresead by 0.59%. Increase in Shopify by 9.35%.
+
+<br>
+
+#### Age Band
+```sql
+WITH A AS (SELECT age_band
+		, week_number
+		, CASE 
+		  WHEN week_number < 25 THEN '12 Weeks Before'
+		  ELSE '12 Weeks After'
+		  END AS Threshold
+                , sum(sales) AS total_sales
+                , sum(transactions) AS total_transaction
+            FROM data_mart.clean_weekly_sales
+            WHERE week_number >= (25 - 12) AND (week_number <= (25 + 11))
+            GROUP BY week_date, week_number, age_band
+            ORDER BY week_date
+            ),
+            
+    B AS (SELECT age_band
+		, SUM(CASE
+		  WHEN threshold = '12 Weeks Before' THEN total_sales
+		  ELSE 0 
+		  END) AS "_12_weeks_before_sales"
+               	, SUM(CASE
+                  WHEN threshold = '12 Weeks After' THEN total_sales
+                  ELSE 0 
+                  END) AS "_12_weeks_after_sales"
+	   FROM A
+           GROUP BY age_band
+           )
+
+SELECT age_band
+    , _12_weeks_after_sales - _12_weeks_before_sales AS growth_reduction_value
+    , ROUND((_12_weeks_after_sales - _12_weeks_before_sales)/_12_weeks_before_sales * 100, 2) AS growth_reduction_percent
+FROM B
+ORDER BY growth_reduction_percent
+;
+```
+|age_band|growth_reduction_value|growth_reduction_percent|
+|--------|----------------------|------------------------|
+|unknown |-44645418             |-0.55                   |
+|Middle Aged|-7143725              |-0.22                   |
+|Young Adults|-4861910              |-0.21                   |
+|Retirees|-12158442             |-0.18                   |
+
+<br>
+
+Sligthy affected all band age groups in similar proportion of decrease percenta sales of about 0.2%. 
+
+<br>
+
+#### Demographic
+```sql
+WITH A AS (SELECT demographic
+		, week_number
+		, CASE 
+		  WHEN week_number < 25 THEN '12 Weeks Before'
+		  ELSE '12 Weeks After'
+		  END AS Threshold
+                , sum(sales) AS total_sales
+                , sum(transactions) AS total_transaction
+            FROM data_mart.clean_weekly_sales
+            WHERE week_number >= (25 - 12) AND (week_number <= (25 + 11))
+            GROUP BY week_date, week_number, demographic
+            ORDER BY week_date
+            ),
+            
+    B AS (SELECT demographic
+		, SUM(CASE
+		  WHEN threshold = '12 Weeks Before' THEN total_sales
+		  ELSE 0 
+		  END) AS "_12_weeks_before_sales"
+               	, SUM(CASE
+                  WHEN threshold = '12 Weeks After' THEN total_sales
+                  ELSE 0 
+                  END) AS "_12_weeks_after_sales"
+	   FROM A
+           GROUP BY demographic
+           )
+
+SELECT demographic
+    , _12_weeks_after_sales - _12_weeks_before_sales AS growth_reduction_value
+    , ROUND((_12_weeks_after_sales - _12_weeks_before_sales)/_12_weeks_before_sales * 100, 2) AS growth_reduction_percent
+FROM B
+ORDER BY growth_reduction_percent
+;
+```
+|demographic|growth_reduction_value|growth_reduction_percent|
+|-----------|----------------------|------------------------|
+|unknown    |-44645418             |-0.55                   |
+|Couples    |-16524711             |-0.29                   |
+|Families   |-7639366              |-0.12                   |
+
+<br>
+
+Sligthy affected both demographuc groups.
+
+<br>
+
+#### Customer Type
+
+```sql
+WITH A AS (SELECT customer_type
+		, week_number
+		, CASE 
+		  WHEN week_number < 25 THEN '12 Weeks Before'
+		  ELSE '12 Weeks After'
+		  END AS Threshold
+                , sum(sales) AS total_sales
+                , sum(transactions) AS total_transaction
+            FROM data_mart.clean_weekly_sales
+            WHERE week_number >= (25 - 12) AND (week_number <= (25 + 11))
+            GROUP BY week_date, week_number, customer_type
+            ORDER BY week_date
+            ),
+            
+    B AS (SELECT customer_type
+		, SUM(CASE
+		  WHEN threshold = '12 Weeks Before' THEN total_sales
+		  ELSE 0 
+		  END) AS "_12_weeks_before_sales"
+               	, SUM(CASE
+                  WHEN threshold = '12 Weeks After' THEN total_sales
+                  ELSE 0 
+                  END) AS "_12_weeks_after_sales"
+	   FROM A
+           GROUP BY customer_type
+           )
+
+SELECT customer_type
+    , _12_weeks_after_sales - _12_weeks_before_sales AS growth_reduction_value
+    , ROUND((_12_weeks_after_sales - _12_weeks_before_sales)/_12_weeks_before_sales * 100, 2) AS growth_reduction_percent
+FROM B
+ORDER BY growth_reduction_percent
+;
+```
+|customer_type|growth_reduction_value|growth_reduction_percent|
+|-------------|----------------------|------------------------|
+|Existing     |-51510403             |-0.51                   |
+|Guest        |-35202995             |-0.46                   |
+|New          |17903903              |0.69                    |
+
+<br>
+
+The change affected the sales in existing customer and guest category with reduction in sale by 0.51%. The sales increased in new customery category by 0.69%
+
+<br>
 
 
 
