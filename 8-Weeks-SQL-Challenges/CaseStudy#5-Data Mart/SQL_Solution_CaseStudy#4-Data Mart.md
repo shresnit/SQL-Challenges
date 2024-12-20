@@ -154,7 +154,7 @@ New Table clean_weekly_sales (First 10 rows)
 
 ## 2. Data Exploration
 
-Q1. What day of the week is used for each week_date value?
+### Q1. What day of the week is used for each week_date value?
 ```sql
 SELECT TO_CHAR(week_date, 'Day') AS day_of_week
 	, COUNT(*)
@@ -168,7 +168,7 @@ GROUP BY day_of_week
 
 <br>
 
-Q2. What range of week numbers are missing from the dataset?
+### Q2. What range of week numbers are missing from the dataset?
 ```sql
 WITH A AS (	SELECT extract('week' FROM week_date) AS week_number
 			FROM data_mart.clean_weekly_sales
@@ -187,7 +187,7 @@ FROM A
 
 <br>
 
-Q3. How many total transactions were there for each year in the dataset?
+### Q3. How many total transactions were there for each year in the dataset?
 ```sql
 SELECT calendar_year
 	, SUM(transactions) AS total_transactions
@@ -204,7 +204,7 @@ ORDER BY calendar_year
 
 <br>
 
-Q4. What is the total sales for each region for each month?
+### Q4. What is the total sales for each region for each month?
 ```sql
 SELECT region
 	, month_number
@@ -270,7 +270,7 @@ ORDER BY region
 
 <br>
 
-Q5. What is the total count of transactions for each platform
+### Q5. What is the total count of transactions for each platform
 ```sql
 SELECT platform
 	, SUM(transactions) AS total_transactions
@@ -286,7 +286,7 @@ ORDER BY total_transactions DESC
 
 <br>
 
-Q6. What is the percentage of sales for Retail vs Shopify for each month?
+### Q6. What is the percentage of sales for Retail vs Shopify for each month?
 ```sql
 WITH A AS ( SELECT platform
 				, month_number
@@ -327,7 +327,7 @@ FROM A
 
 <br>
 
-Q7. What is the percentage of sales by demographic for each year in the dataset?
+### Q7. What is the percentage of sales by demographic for each year in the dataset?
 ```sql
 WITH A AS ( SELECT demographic
 				, calendar_year
@@ -361,7 +361,7 @@ FROM A
 |2020         |unknown    |38.55              |
 |2020         |Families   |32.73              |
 
-Q8. Which age_band and demographic values contribute the most to Retail sales?
+### Q8. Which age_band and demographic values contribute the most to Retail sales?
 ```sql
 WITH demographic_table
 		
@@ -406,32 +406,211 @@ WHERE dem_sales = max_dem_sales AND age_sales = max_age_sales
 
 <br>
 
-Q9. Can we use the avg_transaction column to find the average transaction size for each year for Retail vs Shopify? If not - how would you calculate it instead?
+### Q9. Can we use the avg_transaction column to find the average transaction size for each year for Retail vs Shopify? If not - how would you calculate it instead?
 
 ```sql
-WITH A AS (SELECT calendar_year
-			, platform
-    		, AVG(transactions) AS avg_transactions
-          FROM clean_weekly_sales
-          GROUP BY  calendar_year
-              , platform
-           )
 SELECT calendar_year
-	, ROUND(SUM(CASE
-      WHEN platform = 'Shopify' THEN avg_transactions
-      ELSE 0
-      END)) AS Shopify
-    , ROUND(SUM(CASE
-      WHEN platform = 'Retail' THEN avg_transactions
-      ELSE 0
-      END)) AS Retail
-FROM A
+	, platform
+    , ROUND(avg(avg_transaction)) AS avg_transaction_size_using_avg_transaction    
+	, ROUND(sum(sales)/sum(transactions)) AS avg_transaction_size
+FROM data_mart.clean_weekly_sales
 GROUP BY calendar_year
+	, platform
 ORDER BY calendar_year
+	, platform
 ;
 ```
+|calendar_year|platform|avg_transaction_size_using_avg_transaction|avg_transaction_size|
+|-------------|--------|------------------------------------------|--------------------|
+|2018         |Retail  |43                                        |37                  |
+|2018         |Shopify |188                                       |192                 |
+|2019         |Retail  |42                                        |37                  |
+|2019         |Shopify |178                                       |183                 |
+|2020         |Retail  |41                                        |37                  |
+|2020         |Shopify |175                                       |179                 |
+
+<br>
+Note: avg_transaction column cannot be used as it will produce inaccurate values because the calculation was made at the row level. But for more accurate result we need to sum up the sales and transactions at the year and platform level and then make calaculation.
+
+## 3. Before and After Analysis
+
+This technique is usually used when we inspect an important event and want to inspect the impact before and after a certain point in time.
+<br>
+
+Taking the ***week_date*** value of ***2020-06-15*** as the baseline week where the Data Mart sustainable packaging changes came into effect.
+<br>
+
+We would include all week_date values for ***2020-06-15*** as the start of the period ***after*** the change and the previous ***week_date*** values would be ***before***
+<br>
+
+Using this analysis approach - answer the following questions:
+
+### 1. What is the total sales for the 4 weeks before and after ***2020-06-15***? What is the growth or reduction rate in actual values and percentage of sales?
+```sql
+WITH A AS (SELECT CASE 
+		  WHEN week_date <'2020-06-15'::DATE THEN '4 Weeks Before'
+		  ELSE '4 Weeks After'
+           	  END AS Threshold
+                , sum(sales) AS total_sales
+                , sum(transactions) AS total_transaction
+            FROM data_mart.clean_weekly_sales
+            WHERE (week_date >= '2020-06-15'::DATE - INTERVAL '4 week') AND
+		  (week_date <= '2020-06-15'::DATE + INTERVAL '3 week')
+            GROUP BY week_date
+            ORDER BY week_date
+            ),
+            
+    B AS (SELECT SUM(CASE
+		     WHEN threshold = '4 Weeks Before' THEN total_sales
+       		     ELSE 0 
+       		     END) AS "_4_weeks_before_sales"
+               	, SUM(CASE
+                      WHEN threshold = '4 Weeks After' THEN total_sales
+                      ELSE 0 
+                      END) AS "_4_weeks_after_sales"
+	  FROM A
+    	  )
+
+SELECT *
+    , _4_weeks_after_sales - _4_weeks_before_sales AS growth_reduction_value
+    , ROUND((_4_weeks_after_sales - _4_weeks_before_sales)/_4_weeks_before_sales * 100, 2) AS growth_reduction_percent
+FROM B
+;
+```
+|_4_weeks_before_sales|_4_weeks_after_sales|growth_reduction_value|growth_reduction_percent|
+|---------------------|--------------------|----------------------|------------------------|
+|2345878357           |2318994169          |-26884188             |-1.15                   |
+
+<br>
 
 
+### 2. What about the entire 12 weeks before and after?
+```sql
+WITH A AS (SELECT CASE 
+		  WHEN week_date <'2020-06-15'::DATE THEN '12 Weeks Before'
+		  ELSE '12 Weeks After'
+           	  END AS Threshold
+                , sum(sales) AS total_sales
+                , sum(transactions) AS total_transaction
+            FROM data_mart.clean_weekly_sales
+            WHERE (week_date >= '2020-06-15'::DATE - INTERVAL '12 week') AND
+		  (week_date <= '2020-06-15'::DATE + INTERVAL '11 week')
+            GROUP BY week_date
+            ORDER BY week_date
+            ),
+            
+    B AS (SELECT SUM(CASE
+		     WHEN threshold = '12 Weeks Before' THEN total_sales
+       		     ELSE 0 
+       		     END) AS "_12_weeks_before_sales"
+               	, SUM(CASE
+                      WHEN threshold = '12 Weeks After' THEN total_sales
+                      ELSE 0 
+                      END) AS "_12_weeks_after_sales"
+	  FROM A
+    	  )
+
+SELECT *
+    , _12_weeks_after_sales - _12_weeks_before_sales AS growth_reduction_value
+    , ROUND((_12_weeks_after_sales - _12_weeks_before_sales)/_12_weeks_before_sales * 100, 2) AS growth_reduction_percent
+FROM B
+;
+```
+|_12_weeks_before_sales|_12_weeks_after_sales|growth_reduction_value|growth_reduction_percent|
+|----------------------|---------------------|----------------------|------------------------|
+|7126273147            |6973947753           |-152325394            |-2.14                   |
+
+<br>
+
+### 3. How do the sale metrics for these 2 periods before and after compare with the previous years in 2018 and 2019?
+
+#### 4 weeks before and after
+```sql
+WITH A AS (SELECT calendar_year
+		, week_number
+		, CASE 
+		  WHEN week_number < 25 THEN '4 Weeks Before'
+		  ELSE '4 Weeks After'
+		  END AS Threshold
+                , sum(sales) AS total_sales
+                , sum(transactions) AS total_transaction
+            FROM data_mart.clean_weekly_sales
+            WHERE week_number >= (25 - 4) AND (week_number <= (25 + 3))
+            GROUP BY week_date, week_number, calendar_year
+            ORDER BY week_date
+            ),
+            
+    B AS (SELECT calendar_year
+		, SUM(CASE
+		  WHEN threshold = '4 Weeks Before' THEN total_sales
+		  ELSE 0 
+		  END) AS "_4_weeks_before_sales"
+               	, SUM(CASE
+                  WHEN threshold = '4 Weeks After' THEN total_sales
+                  ELSE 0 
+                  END) AS "_4_weeks_after_sales"
+	   FROM A
+           GROUP BY calendar_year
+           )
+
+SELECT *
+    , _4_weeks_after_sales - _4_weeks_before_sales AS growth_reduction_value
+    , ROUND((_4_weeks_after_sales - _4_weeks_before_sales)/_4_weeks_before_sales * 100, 2) AS growth_reduction_percent
+FROM B
+;
+```
+|calendar_year|_4_weeks_before_sales|_4_weeks_after_sales|growth_reduction_value|growth_reduction_percent|
+|-------------|---------------------|--------------------|----------------------|------------------------|
+|2018         |2125140809           |2129242914          |4102105               |0.19                    |
+|2019         |2249989796           |2252326390          |2336594               |0.10                    |
+|2020         |2345878357           |2318994169          |-26884188             |-1.15                   |
+
+<br>
+
+#### 12 weeks before and after
+```sql
+WITH A AS (SELECT calendar_year
+		, week_number
+		, CASE 
+		  WHEN week_number < 25 THEN '12 Weeks Before'
+		  ELSE '12 Weeks After'
+		  END AS Threshold
+                , sum(sales) AS total_sales
+                , sum(transactions) AS total_transaction
+            FROM data_mart.clean_weekly_sales
+            WHERE week_number >= (25 - 12) AND (week_number <= (25 + 11))
+            GROUP BY week_date, week_number, calendar_year
+            ORDER BY week_date
+            ),
+            
+    B AS (SELECT calendar_year
+		, SUM(CASE
+		  WHEN threshold = '12 Weeks Before' THEN total_sales
+		  ELSE 0 
+		  END) AS "_12_weeks_before_sales"
+               	, SUM(CASE
+                  WHEN threshold = '12 Weeks After' THEN total_sales
+                  ELSE 0 
+                  END) AS "_12_weeks_after_sales"
+	   FROM A
+           GROUP BY calendar_year
+           )
+
+SELECT *
+    , _12_weeks_after_sales - _12_weeks_before_sales AS growth_reduction_value
+    , ROUND((_12_weeks_after_sales - _12_weeks_before_sales)/_12_weeks_before_sales * 100, 2) AS growth_reduction_percent
+FROM B
+;
+```
+|calendar_year|_12_weeks_before_sales|_12_weeks_after_sales|growth_reduction_value|growth_reduction_percent|
+|-------------|----------------------|---------------------|----------------------|------------------------|
+|2018         |6396562317            |6500818510           |104256193             |1.63                    |
+|2019         |6883386397            |6862646103           |-20740294             |-0.30                   |
+|2020         |7126273147            |6973947753           |-152325394            |-2.14                   |
+
+<br>
+
+## 4. Bonus Questions
 
 
 
