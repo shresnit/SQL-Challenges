@@ -73,12 +73,67 @@ The Entity Relationship Diagram is shown below with the data types
 
 ## 2. Digital Analysis
 ### 2.1 How many users are there?
+```sql
+SELECT COUNT (DISTINCT user_id) AS number_of_user
+FROM clique_bait.users
+;
+```
+|number_of_user|
+|--------------|
+|500           |
 
 ### 2.2 How many cookies does each user have on average?
+```sql
+SELECT ROUND(AVG(number_of_cookie)) AS avg_cookie_per_user
+FROM (SELECT user_id
+		, COUNT (DISTINCT cookie_id) AS number_of_cookie
+	  FROM clique_bait.users
+	  GROUP BY user_id) AS SQ
+;
+```
+|avg_cookie_per_user|
+|-------------------|
+|4                  |
 
 ### 2.3 What is the unique number of visits by all users per month?
+```sql
+SELECT EXTRACT(MONTH FROM event_time) AS month
+	, COUNT (DISTINCT visit_id) AS unique_visits
+FROM clique_bait.users AS U
+INNER JOIN clique_bait.events AS E
+	ON U.cookie_id = E.cookie_id
+GROUP BY 1
+;
+```
+|month|unique_visits|
+|-----|-------------|
+|1    |876          |
+|2    |1488         |
+|3    |916          |
+|4    |248          |
+|5    |36           |
+
 
 ### 2.4 What is the number of events for each event type?
+```sql
+SELECT E.event_type
+	, I.event_name
+	, COUNT(*) AS number_of_events
+FROM clique_bait.events AS E
+INNER JOIN clique_bait.event_identifier AS I
+	ON E.event_type = I.event_type
+GROUP BY 1, 2
+ORDER BY 1
+;
+```
+|event_type|event_name   |number_of_events|
+|----------|-------------|----------------|
+|1         |Page View    |20928           |
+|2         |Add to Cart  |8451            |
+|3         |Purchase     |1777            |
+|4         |Ad Impression|876             |
+|5         |Ad Click     |702             |
+
 
 ### 2.6 What is the percentage of visits which have a purchase event?
 
