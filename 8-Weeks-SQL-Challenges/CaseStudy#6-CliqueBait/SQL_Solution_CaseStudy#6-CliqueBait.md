@@ -136,8 +136,21 @@ ORDER BY 1
 
 
 ### 2.6 What is the percentage of visits which have a purchase event?
+```sql
+SELECT ROUND(COUNT(DISTINCT visit_id)
+           	 / (SELECT COUNT(DISTINCT visit_id) FROM clique_bait.events)::NUMERIC * 100
+             , 2) AS percent_visits_purchase
+FROM clique_bait.events AS E
+INNER JOIN clique_bait.event_identifier AS I
+  ON E.event_type = I.event_type
+WHERE E.event_type = 3 
+```
+|percent_visits_purchast|
+|-----------------------|
+|49.86                  |
 
 ### 2.7 Whqt is the percentage of visits which view the checkout page but do not have a purchase event?
+
 
 ### 2.8 What are the top 3 pages by number of views?
 
